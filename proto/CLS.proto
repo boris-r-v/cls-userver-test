@@ -1,0 +1,1185 @@
+syntax = "proto2";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+  optional bool DateTime = 50000;
+  optional bool CounterInfoType = 50001;
+  optional bool RecalculateProfileFlags = 50002;
+  optional bool TemplateInfoType = 50003;
+}
+
+package cls_gen;
+
+service CounterRPC { 
+   rpc CreateCounter (CreateCounterRequest) returns (CreateCounterResponse) {}
+   rpc GetCounter (GetCounterRequest) returns (GetCounterResponse) {}
+   rpc FindCounter (FindCounterRequest) returns (FindCounterResponse) {}
+   rpc SetCounter (SetCounterRequest) returns (SetCounterResponse) {}
+}
+
+
+// Технические параметры запроса
+message RequestInfo
+{
+	required int64           clientRequestId=1;	// ID запроса, создается внешней системой
+	required ClientContext   context=2;			// Дополнительные параметры запроса	
+	reserved        				 3;			// reserved - handlerId не нужен в CLS		
+	optional uint32          commandTimeout=4;	// Таймаут обработки запроса
+}
+
+// Технические параметры ответа
+message ResponseInfo
+{
+    required int64          clientRequestId=2;	// ID запроса 
+    optional string         traceId=3;			// ID сквозной трассировки
+    reserved					4,5,6;			// result, resultDetail, resultInfo в CLS перенесены в %methodName%Response	
+	optional DebugInfo      debugInfo=7;		// Отладочная информация
+    optional bytes          rawData=8;			// TODO: выяснить актуальность
+}
+ 
+ 
+message ClientContext
+{
+    reserved       					 		1;			// 2024.04.04 Istomin: ClientEndPointInfo - Не используется в BS, CLS 	
+    optional string                  traceId=2;         // ID трассировки для логирования
+    optional int64                   priority=3;        // Приоритет запроса
+    optional ExtOperationInfo        extOperation=4;	// TODO: выяснить актуальность
+}
+
+
+message DebugInfo
+{
+    optional double       timeWait=1;
+    optional double       timeProc=2;
+    repeated int32        queueSize=3;
+    optional string       info=4;
+}
+
+
+message CreateCounterRequest
+{
+	required RequestInfo					requestInfo=1;	// Технические параметры запроса
+	required CreateCounterInput 			input=2;	    // Бизнес-параметры
+}
+
+message CreateCounterResponse
+{
+	required	ResponseInfo				reponceInfo=1;			// Технические параметры ответа
+	required	RequestStatus       		result = 2;				// Код результата операции
+	optional	RequestDetailStatus 		resultDetail = 3;		// Детализация кода ошибки
+	repeated	CreateCounterResultInfo	    resultInfo=4;			// Результат выполнения CreateCounter
+}
+
+ 
+
+message FindCounterRequest
+{
+	required	RequestInfo				requestInfo=1;	// Технические параметры запроса
+	required 	FindCounterIn 			findCounterInput=2;		// Бизнес-параметры
+}
+
+message FindCounterResponse
+{
+	required	ResponseInfo			reponceInfo=1;		// Технические параметры ответа
+	required	RequestStatus       	result = 2;			// Код результата операции
+	optional	RequestDetailStatus 	resultDetail = 3;	// Детализация кода ошибки
+	repeated 	CounterCompletionInfo	resultInfo= 4;		// Результат выполнения FindCounter
+    
+}
+
+
+message GetCounterRequest
+{
+	required	RequestInfo				requestInfo=1;	// Технические параметры запроса
+	required 	GetCounterIn 			getCounterInput=2;		// Бизнес-параметры
+}
+
+message GetCounterResponse
+{
+	required	ResponseInfo			reponceInfo=1;		// Технические параметры ответа
+	required	RequestStatus       	result = 2;			// Код результата операции
+	optional	RequestDetailStatus 	resultDetail = 3;	// Детализация кода ошибки
+	repeated 	CounterCompletionInfo	resultInfo= 4;		// Результат выполнения GetCounter
+    
+}
+
+
+
+message SetCounterRequest
+{
+	required	RequestInfo				requestInfo=1;	// Технические параметры запроса
+	required 	SetCounterIn 			setCounterInput=2;		// Бизнес-параметры
+}
+
+message SetCounterResponse
+{
+	required	ResponseInfo				reponceInfo=1;		// Технические параметры ответа
+	required	RequestStatus       		result = 2;			// Код результата операции
+	optional	RequestDetailStatus 		resultDetail = 3;	// Детализация кода ошибки							
+	repeated 	CounterUpdateCompletionInfo resultInfo= 4;		// Результат выполнения SetCounter
+    
+}
+
+
+message CreateCounterInput
+{
+	 required	int64                           count=1;			// количество счетчиков	
+	 required	int32                           templateId=2;		// шаблон 	
+	 optional	Decimal                         initialValue=3;		// значение счетчика на момент создания
+     repeated	CounterActionRule               actionRules=4;		// набор правил ActionRule на счетчике
+	 optional 	CounterAttributes               attrs=5;			// атрибуты счетчика	
+     repeated 	PeriodicalRecalculationFactor   recalcFactors=6;	// MVP2: факторы пересчета	
+	 optional	RecalculationPeriod             period=7;			// Период реинициализации		
+	 reserved             									8;		// 2024.04.04 Istomin: CounterCreateOptions - Только BS, не используется в CLS 
+	 required	string						   	domainCode=9;     	// CLS: новое обязательное поле, система-владелец счетчика
+}
+
+
+message FindCounterIn
+{
+	required	int32                             infoType=1 [(CounterInfoType)=true];	// Маска Tmask, задающая набор возвращаемых атрибутов счетчика
+	repeated	CounterClassificationAttribute    classAttrs=2;							// Атрибуты классификации
+	optional	bytes                             expression=3;							// Набор условий для поиска счетчиков, формат обратной польской нотации
+	optional	CounterSearchOptions              searchOptions=4;						// Опции поиска
+}
+
+
+message GetCounterIn
+{
+    required	int32                   infoType=1 [(CounterInfoType)=true];	// Маска Tmask, задающая набор возвращаемых атрибутов счетчика
+    repeated	int64                   counterIds=2;							// Список Id счетчиков
+    optional	CounterSearchOptions	searchOptions=4;						// Опции поиска
+}
+  
+
+message SetCounterIn
+{
+    optional int64                    dateOfUpdate = 1 [(DateTime)=true ];		// Дата обновления значения счетчика
+    repeated CounterUpdateRequest     counters = 2;								// Параметры обновления счетчика
+    required bool                     isTransacted = 3;							// Признак транзакционности всей операции в целом
+}
+
+
+  
+message CounterClassificationAttribute
+{ 
+	 required	string		type=1;		// Тип классификатора: ПО, ЛС и др
+     required	string		value=2;	// Значение классификатора, например UUID
+}
+
+
+message CounterSearchOptions
+{
+    optional int32     flags=1;										// Флаги фильтра состояния счетчика
+    optional int32     searchFlags=2;								// Флаги фильтра типа счетчика (время, трафик, штуки и тд.)
+    optional int64     dateOfSearch=3 [(DateTime)=true ];			// Дата поиска счетчиков
+    optional int64     dateOfStartSearch=4  [(DateTime)=true ];		// Дата начала периода для поиска счетчиков
+    repeated int32     templateIds=5;								// Список шаблонов
+    optional int64     parentReservationId=6;						// Id сессии резервирования
+    repeated string    activationCodes=7;							// Список кодов активации (например, тарифных планов)
+}
+
+
+// Результат выполнения FindCounter и GetCounter
+message CounterCompletionInfo
+{
+    required CompletionInfo          complInfo   = 1;			// Результат выполнения операции над конкретным объектом
+    optional CounterTechnicalInfo    counterInfo = 2;			// Базовая информация о счетчике
+    repeated CounterEvent            events      = 3;			// Информация о событии, созданном при обработке ActionRule
+    optional CounterValueState       valueState  = 4;			// Информация о состоянии значения баланса
+} 
+
+message CreateCounterResultInfo
+{
+	required CompletionInfo    complInfo = 1;	// Результат обработки объекта
+    repeated CounterEvent      events = 2;		// Массив событий, созданных правилами ActionRule
+}
+
+// Результат выполнения операции над конкретным объектом
+message CompletionInfo
+{
+    optional int64                  id = 1;				// Id объекта обработки (шаблон, баланс и тд)
+    optional RequestStatus          result = 2;			// Код результата операции
+    optional RequestDetailStatus    resultDetail = 3;	// Подробный код ошибки
+}
+
+
+// Информация о счетчике
+message CounterTechnicalInfo
+{
+    required int64                                  id=1;										// id счетчика
+    optional int32                                  templateId=2;								// id шаблона
+    optional int32                                  version=3;                              	// версия шаблона
+    optional int32                                  profileId=15;                           	// id профиля шаблона
+    optional int32                                  ownerId=20;                             	// 20224.04.04 поле ownerId не используется в CLS
+	optional CounterAttributes                      attrs=4;                                	// Атрибуты счетчика
+			 
+	optional CounterInstanceRecalculationFactors    instanceRecalcFactors=5;                	// MVP2: факторы пересчета на экземпляре счетчика. Почему не repeated?
+			 
+    repeated CounterTemplateRecalculationFactor     templateRecalcFactors=6;                	// MVP2: факторы пересчета на шаблоне.
+	
+	optional RecalculationPeriod                    period=7;                               	// Период реинициализации
+    repeated CounterActionRule                      instanceActionRules=8;                  	// Правила ActionRule на экземпляре счетчика
+    repeated CounterActionRule                      templateActionRules=9;                  	// Правила ActionRule на шаблоне																								
+    repeated int64                                  parentResevationId=10 [packed=true];    	// Id сессии резервирования, которая использует счетчик
+	optional Decimal                                totalReservedAmount=11;                 	// Сумма резервирований в данном периоде
+    repeated CounterAbsoluteValue                   values=12;                              	// Значение счетчика
+	
+    repeated InternalAttr                           internalAttrs=13;                       	// TODO уточнить использование
+	
+	required uint32                                 infoType=14 [(CounterInfoType)=true];   	// Маска Tmask, задающая набор возвращаемых атрибутов счетчика
+    repeated InstanceProfileInfo                    otherProfileInfos=17;                   	// Параметры альтернативного профиля шаблона
+	optional int64                                  lastValueUpdateDate=18 [(DateTime)=true];	// Дата последнего обновления значения счетчика
+	optional CounterTemplateInfo                    templateInfo=19;                            // Информация о шаблоне счетчика
+			 
+    reserved					                    				21;                         // expiredPayments - Не используется в CLS
+    reserved 					                    				22;                        	// promisedPayments - Не используется в CLS
+	
+	optional ParentReservationData                  aggregatedReservationData=23;               // Данные резервирований счетчика
+    repeated CounterAbsoluteSubvalue                subvalues=24;                               // MVP2: данные о временных счетчиках (subvalues)
+	optional uint32                                 isNewerPeriod=25;                           // TODO уточнить использование
+	optional Decimal                                periodInitialValue=26;						// Значение счетчика на начало периода
+	optional Decimal                                movedValue=27;								// Остаток счетчика, перенесенный из прошлого периода
+	required string									domainCode=28;								// CLS: код системы-владельца счетчика. Отсутствует в BS.
+}
+
+message CounterAttributes
+{
+    optional int64                             activationDate=1 [(DateTime)=true ];		// дата начала жизни счетчика	
+    optional int64                             deactivationDate=2 [(DateTime)=true]; 	// дата завершения срока жизни счетчика
+    optional int32                             timeShift=3;								// сдвиг часового пояса, кратно 15мин
+		 
+	reserved                            	   			4;								// 2024.04.04 Istomin: templateThresholdCode - Не используется в BS, CLS
+	
+    repeated CounterClassificationAttribute    classAttrs=5;							// атрибуты классификаторов
+	required bool                              classAttrsNull=6; //Boris R не понимаю назначение этого поля, есть ли значение можно из API ProtoBuff понять
+    repeated ExtAttr                           extAttrs=7;								// дополнительные атрибуты (CUG_ID и др.)
+	required bool                              extAttrsNull=8;  //Boris R не понимаю назначение этого поля
+	optional int32                             profileId=9;							 	// текущий профиль (99.99% - дефолтный 0)
+	optional CounterStatus                     status=10;								// флаг статуса счетчика (active по умолчанию)
+	optional string                            activationCode=11;						// код активации (например, тарифный план)
+}
+
+
+// Информация о событии, созданном при обработке ActionRule
+message CounterEvent
+{
+    required int64            counterId=1;		// id счетчика
+    repeated Condition        conditions=2;		// Условия, которые проверялись в правиле ActionRule
+    required bytes            expression=3;		// Логическое выражение для проверки условий
+    repeated ActionInfo       actions=4;		// Действия, выполняемые правилом ActionRule
+}
+
+
+message CounterValueState
+{
+    optional int64                    counterId=1;
+    required int64                    dateOfUpdate = 2 [(DateTime)=true ];
+    optional int64                    parentReservationId = 3;
+    required CounterAbsoluteValue     value = 4;
+    required Decimal                  totalReservedValue = 5;
+    repeated CounterEvent             events = 6;							// Дублируется в CounterCompletionInfo, надо оставить один вариант
+    optional CounterAbsoluteValue     oldValue = 7;
+    optional Decimal                  movedAmount = 8;
+};
+
+
+message CounterAttributesInfo
+{
+    required int64                                  counterId=1;
+    optional CounterAttributes                      attrs=2;
+    optional CounterInstanceRecalculationFactors    recalcFactors=3;
+    optional RecalculationPeriod                    period=4;
+    repeated CounterActionRule                      actionRules=5;
+    required bool                                   actionRulesNull=6;
+}
+
+
+// MVP2
+message PeriodicalRecalculationFactor
+{
+    optional int64                      ratio=1;
+    required string                     extCode=2;
+    optional int64                      ExpirationDate=3 [(DateTime)=true];
+    optional int32                      ApplicationType=4;
+    optional Decimal                    Value=5;
+    optional RecalculationFactorType    type=6;
+}
+
+
+message CounterAbsoluteValue
+{
+    optional int64      dateFrom=2 [(DateTime)=true ];
+    optional int64      dateTo=3 [(DateTime)=true ];
+    required Decimal    value=4;
+}
+ 
+
+// Статус счетчика
+enum CounterStatus
+{
+    Active = 0;
+    Suspended = 1;
+}
+
+ 
+ 
+
+message Decimal
+{
+    required int64 integer = 1;		// Значение
+    required int32 scale = 2;		// Точность значения, количество знаков после запятой (0 или 6)
+}
+ 
+// Дополнительные атрибуты счетчика 
+message ExtAttr
+{
+    required string name=1;
+    required string value=2;
+}
+
+// MVP2
+message CounterInstanceRecalculationFactors
+{
+    repeated PeriodicalRecalculationFactor    periodicalFactors=1;
+    repeated OnetimeRecalculationFactor       onetimeFactors=2;
+    required bool                             periodicalFactorsNull=3;
+    required bool                             onetimeFactorsNull=4;
+}
+
+// MVP2
+message CounterTemplateRecalculationFactor
+{
+    required RecalculationFactorType        type=1;
+    optional Decimal                        value=2;
+    required string                         extCode=3;
+    optional string                         activationCode=4;
+}
+
+
+message OnetimeRecalculationFactor
+{
+    required Decimal                           amount=1;
+    required OnetimeRecalculationFactorType    extType=2;
+}
+
+
+message DayOfPeriod
+{
+    required int32        day=1;
+    required int32        month=2;
+}
+
+
+message RecalculationPeriod
+{
+    required RecalculationPeriodType    type=1;				// тип периода
+    optional int32                      regularPeriod=2;	
+    repeated DayOfPeriod                dayOfPeriods=3;
+    optional Decimal                    periodInitialValue=4;
+}
+
+message LifeCycleCondition
+{
+    required LifeCycleEventType eventType=1;
+	reserved 					2;			 // 2024.04.04 Istomin: DeltaDateThreshold - Не используется в BS, CLS
+}
+
+
+
+message AbsoluteValueThreshold
+{   
+    required ThresholdCrossDirection    crossDirection=1;
+    required ThresholdCompareType       compareType=2;
+    reserved                   			3;  // 2024.04.04 Istomin: targetBalanceId - не используется в BS, CLS
+    required Decimal                    value=4;
+    optional uint32                     valueInstanceFlag=5;
+}
+
+message RelativeValueThreshold
+{   
+    required ThresholdCrossDirection    crossDirection=1;
+    required ThresholdCompareType       compareType=2;
+    reserved		                    3; // 2024.04.04 Istomin: targetBalanceId - не используется в BS, CLS
+    required int32                      value=4;
+    optional uint32                     valueInstanceFlag=5;
+}
+ 
+message DeltaValueThreshold
+{   
+    required ThresholdCrossDirection    crossDirection=1;
+    required ThresholdCompareType       compareType=2;
+    reserved		                    3; // 2024.04.04 Istomin: targetBalanceId - не используется в BS, CLS
+    required Decimal                    delta=4;
+    optional uint32                     valueInstanceFlag=5;
+}
+
+message ActualReservedAmountThreshold
+{   
+    required ThresholdCrossDirection    crossDirection=1;
+    required ThresholdCompareType       compareType=2;
+    reserved		                    3; // 2024.04.04 Istomin: targetBalanceId - не используется в BS, CLS
+    required Decimal                    value=4;
+    optional uint32                     valueInstanceFlag=5;
+}
+
+
+message AttributeCondition
+{
+    required AttributeType    attrType = 1;
+    optional int32            checkProfileId = 2;
+}
+
+message Condition
+{
+    required ConditionType               type=1;
+    oneof condition                      
+    {                                    
+        AbsoluteValueThreshold          absoluteValueThreshold=2;
+        RelativeValueThreshold          relativeValueThreshold=3;
+        DeltaValueThreshold             deltaValueThreshold=4;
+        LifeCycleCondition           	eventCondition=5;
+		CustomCondition                 customCondition=6;			// 2024.04.04 Istomin: Не используется в BS, CLS
+		AbsoluteDateThreshold           absoluteDateThreshold=7;	// 2024.04.04 Istomin: Не используется в BS, CLS
+		DeltaDateThreshold              deltaDateThreshold=8;		// 2024.04.04 Istomin: Не используется в BS, CLS
+		CustomDateThreshold             customDateThreshold=9;		// 2024.04.04 Istomin: Не используется в BS, CLS
+        AttributeCondition              attrCondition = 10;
+        ActualReservedAmountThreshold   reservedAmountThreshold=11;
+    }
+}
+
+
+message CustomCondition // 2024.04.04 Istomin: Не используется в BS, CLS
+{
+    reserved 1;
+    reserved 2;
+}
+
+message AbsoluteDateThreshold // 2024.04.04 Istomin: Не используется в BS, CLS
+{
+    reserved 1;
+	reserved 2;
+	reserved 3;
+}
+
+message DeltaDateThreshold // 2024.04.04 Istomin: Не используется в BS, CLS
+{
+    reserved 1;
+	reserved 2;
+	reserved 3;
+}
+
+message CustomDateThreshold // 2024.04.04 Istomin: Не используется в BS, CLS
+{
+    reserved 1;
+	reserved 2;
+	reserved 3;
+	reserved 4;
+	reserved 5;
+}
+
+
+message Action
+{
+    required ActionType        actionType=1;
+    optional uint32            priority=2;
+    optional string            context=3;
+}
+
+
+message NotifyAction
+{
+    required Action            action=1;
+    optional string            notificationDetails=2;
+    required int32             notificationType=3;
+}
+
+
+message DeleteAction
+{
+    required Action    	action=1;
+	reserved     		2; 			// 2024.04.04 Istomin: targetBalanceId - Не используется в BS, CLS
+}
+
+
+message ActionInfo
+{
+    oneof action
+    {
+        Action            simpleAction=1;
+        NotifyAction      notifyAction=2;
+		ExchangeAction    exchangeAction=3;		// 2024.04.04 Istomin: Не используется в BS, CLS		
+        DeleteAction      deleteAction=4;	
+        TariffAction      tariffAction=5;		// 2024.04.04 Istomin: Не используется в BS, CLS
+    }
+}
+ 
+message ExchangeAction // 2024.04.04 Istomin: Не используется в BS, CLS
+{
+    reserved 1;
+    reserved 2;
+}
+
+
+message TariffAction // 2024.04.04 Istomin: Не используется в BS, CLS
+{
+    reserved 1;
+	reserved 2;
+	reserved 3;
+	reserved 4;
+	reserved 5;
+	reserved 6;
+}
+
+
+
+message CounterActionRule
+{
+    required string                ruleCode=1;
+    repeated ConditionOccurType    occurTypes=2 [packed=true];
+    optional string                activationCode=3;
+    required bytes                 expression=4;
+    repeated Condition             conditions=5;
+    repeated ActionInfo            actions=6;
+    repeated string                operationKeys=7;	// TODO: проверить актуальность
+}
+    
+	
+message CounterAbsoluteSubvalue
+{
+    required CounterUpdateType      subvalueType=1;
+    required CounterAbsoluteValue   CounterAbsoluteValue=2;
+    optional string                 context=3;
+};
+	
+
+message CounterDeltaValue
+{
+    required Decimal    value=2;
+    optional int64      dateTo=3 [(DateTime)=true ];
+}
+
+
+// TODO уточнить использование
+message InternalAttr
+{
+    required string name=1;
+    required string value=2;
+}
+
+message ParentReservationData
+{
+    required Decimal    initialValue=1;
+    required Decimal    committedAmount=2;
+    required Decimal    actualReservedAmount=3;
+}
+
+message InstanceProfileInfo
+{
+    required int32                      profileId=1;
+    optional int64                      activationDate=2 [(DateTime)=true ];
+    optional int64                      deactivationDate=3 [(DateTime)=true ];
+    optional RecalculationPeriodInfo    recalculationPeriod=4;
+}
+
+message CounterInfo
+{
+    required int64 			id=1;
+    optional int32			templateId=2;
+    optional int32          version=3;
+    optional int32          profileId=4;
+    reserved          		5;				// 2024.04.04 Istomin: ownerId - Не используется в BS, CLS
+	required string			domainCode=6;
+}
+
+message CounterUpdateCompletionInfo
+{
+    required CompletionInfo       complInfo = 1;
+    optional CounterValueState    counterState = 2;
+    required CounterInfo          counter=3;
+    optional ReservationType      reservationType = 4;
+}
+
+
+message CounterTemplateCompletionInfo
+{
+    required CompletionInfo         complInfo = 1;
+	optional CounterTemplateInfo    templateInfo=2;
+}
+
+ 
+message TemplateBaseInfo
+{
+    required CompletionInfo         complInfo = 1;
+    required string                 extCode = 2;
+}
+
+message CounterReservation
+{
+    required int64      counterInstanceId=1;
+    optional Decimal    initialValue=2;
+    optional Decimal    commitedReservedValue=3;
+    required Decimal    ActualReservedValue=4;
+}
+
+message CounterAttributeSetOptions
+{
+    optional int32    setFlags=1;
+}
+
+message CounterReservationCompletionInfo
+{
+    required CompletionInfo        complInfo = 1;
+    optional int64                 startDate = 2  [(DateTime)=true ];
+    optional int64                 endDate = 3  [(DateTime)=true ];
+    repeated CounterReservation    reservations = 4;
+}
+
+
+
+message CounterProcessCompletionInfo
+{
+    required CompletionInfo       complInfo = 1;
+    optional CounterValueState    counterProcessState = 2;
+    required CounterInfo          counter = 3;
+    optional CounterAttributes    attrs = 5;
+}
+
+message RefreshTemplatesCompletionInfo
+{
+    required CompletionInfo       complInfo = 1;
+    repeated CounterActionRule    actionRules=2;
+}
+
+
+
+message CounterUpdateData
+{
+    optional int64                startDate=1 [(DateTime)=true ];
+    optional int64                endDate=2 [(DateTime)=true ];
+    optional string               context=3;
+    optional SubvalueOperation    subOperation=4;
+};
+
+
+message CounterUpdateRequest
+{
+    required CounterUpdateType       updateType=1;
+    optional int64                   flags=2;
+    optional CounterInfo             counter=3;
+    optional CounterAbsoluteValue    initialValue=4;
+
+    oneof    value
+    {
+        CounterAbsoluteValue         absoluteValue=5;
+        CounterDeltaValue            deltaValue=6;
+    }
+
+    optional int64                   deactivationDate=7 [(DateTime)=true ];
+    optional int64                   deactivationOffset=8;
+    optional CounterUpdateData       extData=9;
+    repeated string                  operationKeys=10;
+}
+
+
+message DeactivationPeriod
+{
+    required DeactivationPeriodType    type=1;
+    optional uint32                    duration=2;
+}
+
+message DeactivationPeriodInfo
+{
+    required string                    activationCode=1;
+    required DeactivationType          deactivationType=2;
+    optional int64                     deactivationDate=3 [(DateTime)=true ];
+    optional DeactivationPeriod        period=4;
+}
+
+
+message RecalculationPeriodInfo
+{
+    required RecalculationType      recalcType=1;
+    optional RecalculationPeriod    period=2;
+}
+
+
+message SubvalueRecalculationInfo
+{
+    required CounterUpdateType        subvalueType=1;
+    optional int64                    baseInitialValue=2;
+    required int64                    moveRatio=3;
+    optional int64                    moveLimitRatio=4;
+}
+
+
+message TemplateProfileInfo
+{
+    required int32                                 profileId=1;
+    optional int64                                 baseInitialValue=2;
+    optional int64                                 moveRatio=3;
+    optional int64                                 moveLimitRatio=4;
+    repeated DeactivationPeriodInfo                deactivationInfos=5;
+    optional RecalculationPeriodInfo               recalculationPeriod=6;
+    repeated CounterTemplateRecalculationFactor    recalculationFactors=7;
+    repeated SubvalueRecalculationInfo             subvalueInfos=8;
+}
+
+
+message CounterTemplateInfo
+{
+    required int32                                 templateId=1;
+    required string                                extCode=2;
+    repeated DeactivationPeriodInfo                deactivationInfos=3;
+    optional int64                                 baseInitialValue=4;
+    required int32                                 counterValueScale=5;
+    optional int64                                 moveRatio=6;
+    optional int64                                 moveLimitRatio=7;
+    optional RecalculationPeriodInfo               recalculationPeriod=8;
+    repeated CounterTemplateRecalculationFactor    recalculationFactors=9;
+    repeated CounterActionRule                     actionRules=10;
+    required CounterSearchFlags                    extType=11;
+    repeated TemplateProfileInfo                   alternativeProfileInfos=12;
+    optional string                                extName=13;
+    required string                                metricUnitCode=14;
+    repeated SubvalueRecalculationInfo             subvalueInfos=15;
+}
+
+
+
+message ReserveCounterIn
+{
+    required ReservationType          reservationType=1;
+    required int64                    dateOfReservation=2 [(DateTime)=true ];
+    optional int64                    parentReservationId=3;
+    optional int64                    expirationDate=4 [(DateTime)=true ];
+    repeated CounterUpdateRequest     reservations=5;
+    optional CounterReserveOptions    reserveOptions=6;
+ }
+
+message CounterReserveOptions
+{
+	optional int64    dateOfPreviousReservation=1 [(DateTime)=true ];
+}
+
+message SetCounterAttributeIn
+{
+    repeated CounterAttributesInfo            attrInfos=1;
+    optional CounterAttributes                attrs=2;
+    optional CounterAttributeSetOptions       setOptions=3;
+}
+  
+
+message DeleteCounterIn
+{
+    repeated int64      counterIds=1;
+    optional int64      dateOfAction=3 [(DateTime)=true ];
+    reserved    		4; // 2024.04.04 Istomin: CounterDeleteOptions - Не используется в CLS	
+}
+
+message CommitReservationIn
+{
+    repeated int64    reservationIds=1;
+    optional bool     isTransacted=2;
+}
+
+message RollbackReservationIn
+{
+    repeated int64            reservationIds=1;
+    optional bool            isTransacted=2;
+}
+
+
+
+message RefreshCounterTemplateIn
+{
+    required CounterTemplateInfo    templateInfo=1;
+    optional int32                  isLastCommand=2 [default=0];
+}
+
+message GetCounterTemplateIn
+{
+    repeated int32            templateIds=1;
+    optional uint32           infoType=2 [(TemplateInfoType)=true];
+}
+
+message GetActionDataIn
+{
+    optional int64        count=1;
+    //required ActionType        action=2;
+    required int32        action=2;
+}
+ 
+
+message GetCounterTemplateListIn
+{
+    optional int64        dateOfSearch=1 [(DateTime)=true ];
+}
+
+message GetReservationIn
+{       
+    repeated int64            parentReservationIds=1;
+}
+ 
+
+message CounterProfileRecalculationRequest
+{
+    required CounterInfo                            counter=1;
+    optional int32                                  updateFlags=2 [(RecalculateProfileFlags)=true];
+    optional int64                                  plannedDateTo=3 [(DateTime)=true ];
+    optional int32                                  newProfileId=4;
+    optional int64                                  dateOfOperation=5 [(DateTime)=true ];
+    optional CounterInstanceRecalculationFactors    instanceRecalcFactors=6;
+}
+
+message RecalculateCounterProfileIn
+{
+    repeated CounterProfileRecalculationRequest  requestData=1;
+}
+
+
+enum ActionType
+{
+    UnknownActionType   = -1;
+    Notify              = 3;
+	ExcludeFromProcess  = 6;	// 2024.04.04 Istomin: Не используется в BS, CLS		
+    Exchange            = 7;	// 2024.04.04 Istomin: Не используется в BS, CLS
+    Delete              = 8;
+	Tariff              = 9;	// 2024.04.04 Istomin: Не используется в BS, CLS
+    Break               = 10;	// 2024.04.04 Istomin: Не используется в BS, CLS
+}
+ 
+enum AttributeType
+{
+    UnknownAttributeType            = -1;
+    ProfileIdAttributeType          = 0;
+    DateToAttributeType             = 1;
+    DeactivationDateAttributeType   = 2;
+}
+
+
+
+enum CounterSearchFlags
+{
+    Time        = 1;
+    Data        = 2;
+    Item        = 4;
+    Money       = 8;
+    Limit       = 16;
+}
+
+
+enum CounterUpdateType
+{
+    UnknownUpdateType = -1;
+    Common = 0;
+	PromisedPayment=1;		// 2024.04.04 Istomin: Только BS, не используется в CLS
+    ExpiredPayment=2;		// 2024.04.04 Istomin: Только BS, не используется в CLS
+    AutoRefill=3;
+    LongTimeReservation=4;
+}
+
+
+enum ConditionOccurType
+{
+    UnknownOccurType = -1;
+    OnReserve = 0;
+    OnCommit = 1;
+    OnFullCommit = 2;
+    OnGet = 3;
+    OnLifeCycle = 4;
+}
+ 
+enum ConditionType
+{
+			UnknownConditionType = -1;
+			ValueConditionType = 0;
+			LifeConditionType = 1;
+	
+reserved	2;	// 2024.04.04 Istomin: CustomConditionType - Не используется в BS, CLS
+reserved	3;	// 2024.04.04 Istomin: DateConditionType - Не используется в BS, CLS
+reserved    4;	// 2024.04.04 Istomin: CompositeConditionType - Не используется в BS, CLS
+
+			TrueConditionType = 5;
+			AttrConditionConditionType = 6;
+}
+
+
+enum DeactivationPeriodType
+{
+    UnknownPeriodType = -1;
+    HourDeact = 0;
+    DayDeact=1;
+    MonthDeact=2;
+    RecalcPeriod=3;
+}
+
+enum DeactivationType
+{
+    UnknownDeactivationType = -1;
+    Absolute = 0;
+    Relative =1;
+}
+
+
+enum RecalculationType
+{
+    UnknownRecalculationType = -1;
+    TemplatePeriod = 0;
+    InstancePeriod=1;
+    NonPeriodicRecalcType=2;
+}
+
+
+// Тип резервирования
+enum ReservationType
+{
+    UnknownReservationType = -1;
+    NoCommit = 0;					// Добавить новое резервирование
+    Commit=1;                       // Создать новое резервирование с одновременным подтверждением предыдущих 
+    FullCommit=2;                   // Завершение сессии резервирования с подтверждением всех резервирований
+    PartlyCommit=3;                 // Частичное подтверждение существующих резервирований без создания новых 
+}
+
+
+
+enum SubvalueOperation
+{
+    CreateSubvalue = 0;
+    DeleteSubvalue = 1;
+    UpdateSubvalue = 2;
+    UseSubvalue    = 3;
+}
+
+enum ThresholdCrossDirection
+{
+    UnknownCrossDirection = -1;
+    Up = 0;
+    Down = 1;
+    Both = 2;
+}
+
+
+enum ThresholdCompareType
+{
+    UnknownCompareType = -1;
+    Equal = 0;
+    Cross = 1;
+    Above = 2;
+    Below = 3;
+    AboveEqual = 4;
+    BelowEqual = 5;
+    CrossEqual = 6;
+    NotCross = 7;
+    NotCrossNorEqual = 8;
+    Always = 9;
+    Multi = 10;
+    NotEqual = 11;
+}
+
+enum LifeCycleEventType
+{
+    UnknownEventType = -1;
+    CounterCreate = 0;
+    CounterDelete = 1;
+    CounterReinit = 2;
+    SubvalueExpired = 3;
+}
+
+enum OnetimeRecalculationFactorType
+{
+    MovingIRPA = 0;
+    SwitchProfileType = 1;
+}
+
+
+// Типы факторов пересчета (бонусов)
+enum RecalculationFactorType
+{
+    InBonus=0;
+    OutBonus=1;
+    TemplateRatio=2;
+    InstanceRatio=3;
+    InstanceInBonus=4;
+    InstanceOutBonus=5;
+}
+
+
+enum RecalculationPeriodType
+{
+    HourRecalc = 10;
+    DayRecalc= 11;
+    WeekRecalc=12;
+    MonthRecalc=13;
+    YearRecalc=14;
+    NonPeriodic=15;
+}
+
+//код результата операции
+enum RequestStatus 	
+{
+    UnknownRequestStatus = -1;
+    RequestSuccess = 0;
+    RequestSuccessPartial = 1;
+    RequestInProcess=2;
+    RequestFailed=3;
+    RequestTimeout=4;
+}
+
+
+
+// Детализация кода ошибки
+enum RequestDetailStatus
+{
+    Undefined = -2;
+    UnknownDetail = -1;
+    Cancelled = 0;
+    InvalidArguments=1;
+    InvalidVersion=2;
+    CounterNotFound=3;
+    CountersNotProvided=4;
+    InternalError=5;
+    DatabaseError=6;
+    InitialValueNotProvided=7;
+    ClientRequestIdNotProvided=8;
+    ClassificationNotProvided=9;
+    DeactivationOffsetAndDate = 10;
+    AbsoluteAndDeltaValue=11;
+    IntAndDouble=12;
+    InvalidReservationType=13;
+    InitialValueTooOld=14;
+    AbsoluteAndDeltaValueEmpty=15;
+    ReservationAbsoluteValueNotPossible=16;
+    ReservationNotFound=17;
+    ReservationIdNotDefined=18;
+    CounterdIdNotDefined=19;
+    UnsupportedUpdateType=20;
+    InvalidInfoType=21;
+    dateOfActionInPast=22;
+    dateOfUpdateInPast=23;
+    InvalidThresholdType=24;
+    InvalidActionType=25;
+    InvalidCrossDirection=26;
+    InvalidCounterUpdateType=27;
+    InvalidCounterClassificationAttributeType=28;
+    NoAttributesProvided=29;
+    KeyEmpty=30;
+    SessionNotFound=31;
+    IncorrectTypeOfValue=32;
+    IntAndDoubleEmpty=33;
+    AccessDenied=34;
+    InvalidProtocolVersion=35;
+    InvalidRecalculationFactorType=36;
+    InvalidFactorMask=37;
+    DuplicateFactorMask=38;
+    TemplateFactorNotFound=39;
+    CrmRatiosOverflow=40;
+    TemplateFactorCrmRatioIsNull=41;
+    InvalidCompareType=42;
+    TemplateDecimalVsCounter=43;
+    InvalidActivationDate=44;
+    InvalidDeactivationDate=45;
+    TemplateThresholdCodeIsEmpty=46;
+    InvalidRecalculationPeriod=47;
+    CounterTemplateNotFound=48;
+    Reserved=49;
+    TooManyRequests=50;
+    ReservationInFuture=51;
+    RecalculationPeriodRequired=52;
+    GetCounterInFuture=53;
+    InvalidScale=54;
+    InvalidPeriodDelta=55;
+    BillingPeriodNotFound=56;
+    ExtCodeNotFound=57;
+    TooManyTemplateFactors=58;
+    InvalidTariffActionType=59;
+    InvalidTariffSignType=60;
+    ActionInfoIsEmpty=61;
+    InvalidConditionType=62;
+    InvalidRoundDateType=63;
+    InvalidCustomDateType=64;
+    InvalidLifeCycleEventType=65;
+    EnumOverflow=66;
+    InvalidDeactivationType=67;
+    InvalidDeactivationPeriodType=68;
+    InvalidConditionOccurType=69;
+    EolNotFound=70;
+    ActionRuleNotFound=71;
+    AbsoluteDateThresholdUnsupported=72;
+    TooManyConditions=73;
+    InvalidCounterUpdateFlags=74;
+    InvalidExpirationDate=75;
+    TooManyCrmFactors=76;
+    UnsupportedCondition=77;
+    InvalidExpression=78;
+    DaysListOverflow=79;
+    IncorrectTimesListSize=80;
+    RateOrValueRequired=81;
+    InvalidActionInfo=82;
+    UnsupportedActionsRedirectionDepth=83;
+    MixedMoveAndCopyTariffActions=84;
+    UnsupportedTariffActionRate=85;
+    NegativeRateInTariffAction=86;
+    TariffActionsValuesExceedsDelta=87;
+    CounterExpired=88;
+    CounterNotYetActive=89;
+    InvalidDayOfPeriods=90;
+    InvalidTimeShift=91;
+    InvalidTimeZone=92;
+    CounterTemplateIdNotSpecified=93;
+    DynamicConditionRestriction=94;
+    DuplicateRequest=95;
+    //Values 96-106 are reserved for SEE error codes
+    ReservedForSEEFunctionalBlocks=106;
+    InvalidTemplateExtType = 108;
+    CounterFiltered=109;
+    InvalidProfileId=110;
+    ProfileSwitchingForNonPeriodicCounter=111;
+    SessionExpired=112;
+    InvalidDateTo=113;
+    ParallelTemplateSynchInProgress=114;
+    InvalidOwner=115;
+    DateOfOperationInFuture=116;
+    PlannedDateToInPast=117;
+    CounterSuspended=118;
+    TooManyCountersOnClassificationAttribute=119;
+    InvalidSubvalueTypeInSubvalueRecalculationInfo=120;
+    InvalidNumberOfSubvalueRecalculationInfos=121;
+    LimitsInconsistentOrMissing=122;
+    PartlyCommitNegativeValue=123;
+    PartlyCommitValueTooBig=124;
+    CounterSubvalueNotFound=125;
+    NotEnoughLongTimeReservations=126;
+	DomainCodeNotFound=127;
+	TemplateIdNotFound=128;
+}
+
+
+
+
+
+
+
+// выяснить актуальность
+message ExtOperationInfo
+{
+    required string        abstractOperationCode=1;
+    required string        operationId=2;
+}
+
+// выяснить актуальность
+enum ProtocolVersion
+{
+    MajorVersionNum=2;
+    MinorVersionNum=18;
+}
+
+// выяснить актуальность
+enum CompatibleProtocolVersion
+{
+    MajorCompVersionNum=2;
+    MinorCompVersionNum=17;
+}
+
+  

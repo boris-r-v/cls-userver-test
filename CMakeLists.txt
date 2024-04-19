@@ -14,8 +14,12 @@ userver_setup_environment()
 
 # Common sources
 add_library(${PROJECT_NAME}_objs OBJECT
-        src/cls.hpp
-        src/cls.cpp
+        src/CounterServiceComponent.cpp
+        src/CounterServiceComponent.h
+        src/CounterRPCClient.cpp
+        src/CounterRPCClient.h
+        src/CounterRPCHttpHandler.cpp
+        src/CounterRPCHttpHandler.h
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::core
         userver::redis
@@ -23,7 +27,7 @@ target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::core
 )
 
 include(GrpcTargets)
-userver_add_grpc_library(${PROJECT_NAME}_proto PROTOS cls/greeter.proto)
+userver_add_grpc_library(${PROJECT_NAME}_proto PROTOS CLS.proto)
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC ${PROJECT_NAME}_proto)
 
 # The Service

@@ -21,12 +21,12 @@ components_manager:
             # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
             channel-args: {}
 
-        # Our wrapper around the generated client for GreeterService
-        greeter-client:
-            # The service endpoint (URI). We talk to our own service,
-            # which is kind of pointless, but works for an example
-            endpoint: '[::1]:8091'
-        # /// [gRPC sample - static config client]
+#        # Our wrapper around the generated client for GreeterService
+#        greeter-client:
+#            # The service endpoint (URI). We talk to our own service,
+#            # which is kind of pointless, but works for an example
+#            endpoint: '[::1]:8091'
+#        # /// [gRPC sample - static config client]
 
         # /// [gRPC sample - static config server]
         # yaml
@@ -37,12 +37,37 @@ components_manager:
             port#fallback: 8091
             completion-queue-count: 3
 
-        # Our GreeterService implementation
-        greeter-service:
+#        # Our GreeterService implementation
+#        greeter-service:
+#            task-processor: main-task-processor
+#            greeting-prefix: Hello
+#            middlewares: []
+#        # /// [gRPC sample - static config server]
+
+        counter-service:
             task-processor: main-task-processor
-            greeting-prefix: Hello
-            middlewares: []
-        # /// [gRPC sample - static config server]
+            service-prefix: Counter
+            middlewares: [ ]
+
+        # Our wrapper around the generated client for GreeterService
+        counter-rpc-client:
+            # The service endpoint (URI). We talk to our own service,
+            # which is kind of pointless, but works for an example
+            endpoint: '[::1]:8091'
+        # /// [gRPC sample - static config client]
+
+
+#        redis-database:
+#            groups:
+#                - config_name: taxi-tmp  # Key to lookup in secdist configuration
+#                  db: taxi-tmp           # Name to refer to the cluster in components::Redis::GetClient()
+#
+#            subscribe_groups:  # Array of redis clusters to work with in subscribe mode
+#
+#            thread_pools:
+#                redis_thread_pool_size: 8
+#                sentinel_thread_pool_size: 1
+
 
         # In this example, the tests still communicate with the microservice
         # using HTTP, so we still need an HTTP server and an HTTP handler.
@@ -50,10 +75,15 @@ components_manager:
             listener:
                 port: 8092
                 task_processor: main-task-processor
-        greeter-http-handler:
-            path: /hello
-            method: POST
-            task_processor: main-task-processor
+#        greeter-http-handler:
+#            path: /hello
+#            method: POST
+#            task_processor: main-task-processor
+
+        counter-rpc-client-http-handler:
+                    path: /hello
+                    method: POST
+                    task_processor: main-task-processor
 
         testsuite-support:
 
