@@ -13,21 +13,18 @@
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/secdist/component.hpp>
 
-class CounterServiceComponent final
-    : public cls_gen::CounterRPCBase::Component {
- public:
-  static constexpr std::string_view kName = "counter-service";
 
-  CounterServiceComponent(const userver::components::ComponentConfig& config, const userver::components::ComponentContext& context);
+class CounterServiceComponent final: public cls_gen::CounterRPCBase::Component {
+  public:
+    static constexpr std::string_view kName = "counter-service";
 
-  static userver::yaml_config::Schema GetStaticConfigSchema();
+    CounterServiceComponent( userver::components::ComponentConfig const& config, userver::components::ComponentContext const& context);
 
-  void CreateCounter( cls_gen::CounterRPCBase::CreateCounterCall& call, cls_gen::CreateCounterRequest&& request) override;
+    void CreateCounter( cls_gen::CounterRPCBase::CreateCounterCall& call, cls_gen::CreateCounterRequest&& request) override;
 
- private:
-  const std::string prefix_;
-  userver::storages::redis::ClientPtr redis_client_;
-  userver::storages::redis::CommandControl redis_cc_;
+  private:
+    userver::storages::redis::ClientPtr redis_client_;
+    userver::storages::redis::CommandControl redis_cc_;
 };
 
 #endif  // CLS_USERVER_COUNTERSERVICECOMPONENT_H

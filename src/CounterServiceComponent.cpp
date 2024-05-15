@@ -15,11 +15,8 @@ cls_gen::CreateCounterResponse create_counter(  cls_gen::CreateCounterRequest&& 
                                                 userver::storages::redis::ClientPtr& redis_client_,
                                                 userver::storages::redis::CommandControl redis_cc_ );
 
-CounterServiceComponent::CounterServiceComponent(
-    const userver::components::ComponentConfig& config,
-    const userver::components::ComponentContext& context)
+CounterServiceComponent::CounterServiceComponent( userver::components::ComponentConfig const& config, userver::components::ComponentContext const& context)
     : cls_gen::CounterRPCBase::Component::Component(config, context),
-      prefix_(config["service-prefix"].As<std::string>()),
       redis_client_{ context.FindComponent<userver::components::Redis>("redis-database").GetClient("main_db") },
       redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4}
 
@@ -32,15 +29,3 @@ void CounterServiceComponent::CreateCounter(    cls_gen::CounterRPCBase::CreateC
     call.Finish( create_counter( std::move(request_), redis_client_, redis_cc_ ) );
 }
 
-userver::yaml_config::Schema CounterServiceComponent::GetStaticConfigSchema() {
-  return userver::yaml_config::MergeSchemas<
-  userver::ugrpc::server::ServiceComponentBase>(R"(
-type: object
-description: gRPC sample greater service component
-additionalProperties: false
-properties:
-    service-prefix:
-        type: string
-        description: counter service prefix
-)");
-}

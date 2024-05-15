@@ -26,7 +26,7 @@ cls_gen::CreateCounterResponse create_counter(    cls_gen::CreateCounterRequest&
             reply_.set_result ( cls_gen::RequestStatus::RequestFailed );
             reply_.set_resultdetail ( cls_gen::RequestDetailStatus::ClientRequestIdNotProvided );
             LOG_WARNING() << "CreateCounter got request without clientRequestId";
-            return std::move( reply_ );
+            return reply_;
     }
     
     /*Algo 2 redis access*/
@@ -37,7 +37,7 @@ cls_gen::CreateCounterResponse create_counter(    cls_gen::CreateCounterRequest&
             reply_.set_result ( cls_gen::RequestStatus::RequestFailed );
             reply_.set_resultdetail ( cls_gen::RequestDetailStatus::DatabaseError );
             LOG_WARNING() << "CreateCounter no Redis connection";
-            return std::move( reply_ );
+            return reply_;
     }
 
  /*Algo 3. check is clientRequestId unique */
@@ -51,7 +51,7 @@ cls_gen::CreateCounterResponse create_counter(    cls_gen::CreateCounterRequest&
             std::cout << "CreateCounter got duplicate request with clientRequestId <" << clReqId << ">\n";
             reply_.set_result ( cls_gen::RequestStatus::RequestFailed );
             reply_.set_resultdetail ( cls_gen::RequestDetailStatus::DuplicateRequest );
-            return std::move( reply_ );
+            return reply_;
     }
     else{
             std::vector<std::pair<std::string, std::string>> vectr {{"executeDate",std::to_string(time(0))}, {"operationCode", "none"}, {"operationId", "none"}};
@@ -64,7 +64,7 @@ cls_gen::CreateCounterResponse create_counter(    cls_gen::CreateCounterRequest&
             reply_.set_result ( cls_gen::RequestStatus::RequestFailed );
             reply_.set_resultdetail ( cls_gen::RequestDetailStatus::InvalidArguments );
             LOG_WARNING() << "CreateCounter wrong arguments, count less or equal than zero";
-             return std::move( reply_ );
+             return reply_;
     }
 
     LOG_INFO() << "clientRequestId<" << request_.requestinfo().clientrequestid() << ">" << "Check domainCode is exists, domainCode=<" << request_.requestinfo().systemdomaincode() << ">";
@@ -73,10 +73,10 @@ cls_gen::CreateCounterResponse create_counter(    cls_gen::CreateCounterRequest&
             reply_.set_resultdetail ( cls_gen::RequestDetailStatus::DomainCodeNotFound );
 
             LOG_WARNING() << "CreateCounter wrong arguments, count less or equal than zero";
-            return std::move( reply_ );
+            return reply_;
     }
 
 
 
-    return std::move( reply_ );
+    return reply_;
 }

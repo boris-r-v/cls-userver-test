@@ -35,7 +35,6 @@ components_manager:
 
         counter-service:
             task-processor: main-task-processor
-            service-prefix: Counter
             middlewares: [ ]
 
         redis-database:
