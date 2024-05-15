@@ -23,8 +23,8 @@ class CounterServiceComponent final
 
   static userver::yaml_config::Schema GetStaticConfigSchema();
 
-  void CreateCounter(cls_gen::CounterRPCBase::CreateCounterCall& call,
-                     cls_gen::CreateCounterRequest&& request) override;
+  void CreateCounter( cls_gen::CounterRPCBase::CreateCounterCall& call,
+                      cls_gen::CreateCounterRequest&& request) override;
 
  private:
   const std::string prefix_;

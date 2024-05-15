@@ -10,6 +10,7 @@
 #include "CounterRPCClient.h"
 #include "CounterRPCHttpHandler.h"
 #include "CounterServiceComponent.h"
+#include "userver/storages/secdist/provider_component.hpp"
 
 int main(int argc, char* argv[]) {
   const auto component_list =
@@ -17,9 +18,12 @@ int main(int argc, char* argv[]) {
           .Append<userver::components::TestsuiteSupport>()
           .Append<userver::ugrpc::client::ClientFactoryComponent>()
           .Append<userver::ugrpc::server::ServerComponent>()
-          .Append<CounterServiceComponent>()
           .Append<CounterRPCClient>()
+          .Append<CounterServiceComponent>()
           .Append<CounterRPCHttpHandler>()
+          .Append<userver::components::Secdist>()
+          .Append<userver::components::DefaultSecdistProvider>()
+          .Append<userver::components::Redis>("redis-database")
       ;
   return userver::utils::DaemonMain(argc, argv, component_list);
 }

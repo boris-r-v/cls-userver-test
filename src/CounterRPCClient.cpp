@@ -39,10 +39,10 @@ cls_gen::CreateCounterResponse CounterRPCClient::SayHello() {
   cls_gen::CreateCounterRequest request;
   request.mutable_input()->set_count(1);
   request.mutable_input()->set_templateid(1);
-  request.mutable_input()->set_domaincode("code");
   request.mutable_requestinfo()->set_clientrequestid(0);
   request.mutable_requestinfo()->mutable_context()->set_priority(1);
   request.mutable_requestinfo()->mutable_context()->set_traceid("traceid");
+  request.mutable_requestinfo()->set_systemdomaincode( cls_gen::DomainCode::Telecom );
 
   auto context = std::make_unique<grpc::ClientContext>();
   context->set_deadline(

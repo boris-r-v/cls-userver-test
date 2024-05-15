@@ -1,5 +1,4 @@
 syntax = "proto2";
-
 import "google/protobuf/descriptor.proto";
 
 extend google.protobuf.FieldOptions {
@@ -16,6 +15,8 @@ service CounterRPC {
    rpc GetCounter (GetCounterRequest) returns (GetCounterResponse) {}
    rpc FindCounter (FindCounterRequest) returns (FindCounterResponse) {}
    rpc SetCounter (SetCounterRequest) returns (SetCounterResponse) {}
+   rpc CommitReservation (CommitReservationRequest) returns (CommitReservationResponse) {}
+   rpc ReserveCounter (ReserveCounterRequest) returns (ReserveCounterResponse) {}
 }
 
 
@@ -26,6 +27,7 @@ message RequestInfo
 	required ClientContext   context=2;			// Дополнительные параметры запроса	
 	reserved        				 3;			// reserved - handlerId не нужен в CLS		
 	optional uint32          commandTimeout=4;	// Таймаут обработки запроса
+    required DomainCode      systemDomainCode=5;// Домен код системы который должен совпасть с domainCode счетчика, чтобы система получила доступ к счетчику
 }
 
 // Технические параметры ответа
@@ -65,7 +67,7 @@ message CreateCounterRequest
 
 message CreateCounterResponse
 {
-	required	ResponseInfo				reponceInfo=1;			// Технические параметры ответа
+	required	ResponseInfo				responseInfo=1;			// Технические параметры ответа
 	required	RequestStatus       		result = 2;				// Код результата операции
 	optional	RequestDetailStatus 		resultDetail = 3;		// Детализация кода ошибки
 	repeated	CreateCounterResultInfo	    resultInfo=4;			// Результат выполнения CreateCounter
@@ -76,12 +78,12 @@ message CreateCounterResponse
 message FindCounterRequest
 {
 	required	RequestInfo				requestInfo=1;	// Технические параметры запроса
-	required 	FindCounterIn 			findCounterInput=2;		// Бизнес-параметры
+	required 	FindCounterInput 		input=2;		// Бизнес-параметры
 }
 
 message FindCounterResponse
 {
-	required	ResponseInfo			reponceInfo=1;		// Технические параметры ответа
+	required	ResponseInfo			responseInfo=1;		// Технические параметры ответа
 	required	RequestStatus       	result = 2;			// Код результата операции
 	optional	RequestDetailStatus 	resultDetail = 3;	// Детализация кода ошибки
 	repeated 	CounterCompletionInfo	resultInfo= 4;		// Результат выполнения FindCounter
@@ -92,12 +94,12 @@ message FindCounterResponse
 message GetCounterRequest
 {
 	required	RequestInfo				requestInfo=1;	// Технические параметры запроса
-	required 	GetCounterIn 			getCounterInput=2;		// Бизнес-параметры
+	required 	GetCounterInput 		input=2;		// Бизнес-параметры
 }
 
 message GetCounterResponse
 {
-	required	ResponseInfo			reponceInfo=1;		// Технические параметры ответа
+	required	ResponseInfo			responseInfo=1;		// Технические параметры ответа
 	required	RequestStatus       	result = 2;			// Код результата операции
 	optional	RequestDetailStatus 	resultDetail = 3;	// Детализация кода ошибки
 	repeated 	CounterCompletionInfo	resultInfo= 4;		// Результат выполнения GetCounter
@@ -105,21 +107,54 @@ message GetCounterResponse
 }
 
 
-
 message SetCounterRequest
 {
-	required	RequestInfo				requestInfo=1;	// Технические параметры запроса
-	required 	SetCounterIn 			setCounterInput=2;		// Бизнес-параметры
+	required	RequestInfo				requestInfo=1;	    // Технические параметры запроса
+	required 	SetCounterInput 		input=2;	// Бизнес-параметры
 }
 
 message SetCounterResponse
 {
-	required	ResponseInfo				reponceInfo=1;		// Технические параметры ответа
+	required	ResponseInfo				responseInfo=1;		// Технические параметры ответа
 	required	RequestStatus       		result = 2;			// Код результата операции
 	optional	RequestDetailStatus 		resultDetail = 3;	// Детализация кода ошибки							
 	repeated 	CounterUpdateCompletionInfo resultInfo= 4;		// Результат выполнения SetCounter
     
 }
+
+
+message CommitReservationRequest
+{
+	required	RequestInfo				requestInfo=1;	// Технические параметры запроса
+	required 	CommitReservationInput  input=2;		// Бизнес-параметры
+}
+
+message CommitReservationResponse
+{
+	required	ResponseInfo				responseInfo=1;		// Технические параметры ответа
+	required	RequestStatus       		result = 2;			// Код результата операции
+	optional	RequestDetailStatus 		resultDetail = 3;	// Детализация кода ошибки							
+	repeated 	CounterUpdateCompletionInfo resultInfo= 4;		// Результат выполнения CommitReservation
+    
+}
+
+
+
+message ReserveCounterRequest
+{
+	required	RequestInfo				requestInfo=1;	// Технические параметры запроса
+	required 	ReserveCounterInput  	input=2;		// Бизнес-параметры
+}
+
+message ReserveCounterResponse
+{
+	required	ResponseInfo				responseInfo=1;		// Технические параметры ответа
+	required	RequestStatus       		result = 2;			// Код результата операции
+	optional	RequestDetailStatus 		resultDetail = 3;	// Детализация кода ошибки							
+	repeated 	CounterUpdateCompletionInfo resultInfo= 4;		// Результат выполнения ReserveCounter
+    
+}
+
 
 
 message CreateCounterInput
@@ -132,11 +167,10 @@ message CreateCounterInput
      repeated 	PeriodicalRecalculationFactor   recalcFactors=6;	// MVP2: факторы пересчета	
 	 optional	RecalculationPeriod             period=7;			// Период реинициализации		
 	 reserved             									8;		// 2024.04.04 Istomin: CounterCreateOptions - Только BS, не используется в CLS 
-	 required	string						   	domainCode=9;     	// CLS: новое обязательное поле, система-владелец счетчика
 }
 
 
-message FindCounterIn
+message FindCounterInput
 {
 	required	int32                             infoType=1 [(CounterInfoType)=true];	// Маска Tmask, задающая набор возвращаемых атрибутов счетчика
 	repeated	CounterClassificationAttribute    classAttrs=2;							// Атрибуты классификации
@@ -145,7 +179,7 @@ message FindCounterIn
 }
 
 
-message GetCounterIn
+message GetCounterInput
 {
     required	int32                   infoType=1 [(CounterInfoType)=true];	// Маска Tmask, задающая набор возвращаемых атрибутов счетчика
     repeated	int64                   counterIds=2;							// Список Id счетчиков
@@ -153,7 +187,7 @@ message GetCounterIn
 }
   
 
-message SetCounterIn
+message SetCounterInput
 {
     optional int64                    dateOfUpdate = 1 [(DateTime)=true ];		// Дата обновления значения счетчика
     repeated CounterUpdateRequest     counters = 2;								// Параметры обновления счетчика
@@ -186,8 +220,8 @@ message CounterCompletionInfo
 {
     required CompletionInfo          complInfo   = 1;			// Результат выполнения операции над конкретным объектом
     optional CounterTechnicalInfo    counterInfo = 2;			// Базовая информация о счетчике
-    repeated CounterEvent            events      = 3;			// Информация о событии, созданном при обработке ActionRule
-    optional CounterValueState       valueState  = 4;			// Информация о состоянии значения баланса
+    repeated CounterEvent            events      = 3;			// нформация о событии, созданном при обработке ActionRule
+    optional CounterValueState       valueState  = 4;			// нформация о состоянии значения баланса
 } 
 
 message CreateCounterResultInfo
@@ -205,12 +239,12 @@ message CompletionInfo
 }
 
 
-// Информация о счетчике
+// нформация о счетчике
 message CounterTechnicalInfo
 {
     required int64                                  id=1;										// id счетчика
     optional int32                                  templateId=2;								// id шаблона
-    optional int32                                  version=3;                              	// версия шаблона
+    optional int32                                  templateVersion=3;                         	// версия шаблона
     optional int32                                  profileId=15;                           	// id профиля шаблона
     optional int32                                  ownerId=20;                             	// 20224.04.04 поле ownerId не используется в CLS
 	optional CounterAttributes                      attrs=4;                                	// Атрибуты счетчика
@@ -231,7 +265,7 @@ message CounterTechnicalInfo
 	required uint32                                 infoType=14 [(CounterInfoType)=true];   	// Маска Tmask, задающая набор возвращаемых атрибутов счетчика
     repeated InstanceProfileInfo                    otherProfileInfos=17;                   	// Параметры альтернативного профиля шаблона
 	optional int64                                  lastValueUpdateDate=18 [(DateTime)=true];	// Дата последнего обновления значения счетчика
-	optional CounterTemplateInfo                    templateInfo=19;                            // Информация о шаблоне счетчика
+	optional CounterTemplateInfo                    templateInfo=19;                            // нформация о шаблоне счетчика
 			 
     reserved					                    				21;                         // expiredPayments - Не используется в CLS
     reserved 					                    				22;                        	// promisedPayments - Не используется в CLS
@@ -241,7 +275,7 @@ message CounterTechnicalInfo
 	optional uint32                                 isNewerPeriod=25;                           // TODO уточнить использование
 	optional Decimal                                periodInitialValue=26;						// Значение счетчика на начало периода
 	optional Decimal                                movedValue=27;								// Остаток счетчика, перенесенный из прошлого периода
-	required string									domainCode=28;								// CLS: код системы-владельца счетчика. Отсутствует в BS.
+	required DomainCode								domainCode=28;								// CLS: код системы-владельца счетчика. Отсутствует в BS.
 }
 
 message CounterAttributes
@@ -262,7 +296,7 @@ message CounterAttributes
 }
 
 
-// Информация о событии, созданном при обработке ActionRule
+// нформация о событии, созданном при обработке ActionRule
 message CounterEvent
 {
     required int64            counterId=1;		// id счетчика
@@ -323,7 +357,12 @@ enum CounterStatus
     Suspended = 1;
 }
 
- 
+enum DomainCode 
+{
+	Undef = 0;      //coz Undefined already is used in some other enum
+	Telecom = 1;
+	Finance = 2;
+} 
  
 
 message Decimal
@@ -411,7 +450,7 @@ message DeltaValueThreshold
     required ThresholdCrossDirection    crossDirection=1;
     required ThresholdCompareType       compareType=2;
     reserved		                    3; // 2024.04.04 Istomin: targetBalanceId - не используется в BS, CLS
-    required Decimal                    delta=4;
+    required Decimal                    value=4;
     optional uint32                     valueInstanceFlag=5;
 }
 
@@ -590,7 +629,7 @@ message CounterInfo
     optional int32          version=3;
     optional int32          profileId=4;
     reserved          		5;				// 2024.04.04 Istomin: ownerId - Не используется в BS, CLS
-	required string			domainCode=6;
+	optional DomainCode		domainCode=6;   // это поле заполняется в случе если эта структура заполняется данныеми из редиса и отдается внешней системе
 }
 
 message CounterUpdateCompletionInfo
@@ -667,7 +706,7 @@ message CounterUpdateRequest
 {
     required CounterUpdateType       updateType=1;
     optional int64                   flags=2;
-    optional CounterInfo             counter=3;
+    required CounterInfo             counter=3;     
     optional CounterAbsoluteValue    initialValue=4;
 
     oneof    value
@@ -733,7 +772,7 @@ message CounterTemplateInfo
     required string                                extCode=2;
     repeated DeactivationPeriodInfo                deactivationInfos=3;
     optional int64                                 baseInitialValue=4;
-    required int32                                 counterValueScale=5;
+    required int32                                 scale=5;
     optional int64                                 moveRatio=6;
     optional int64                                 moveLimitRatio=7;
     optional RecalculationPeriodInfo               recalculationPeriod=8;
@@ -748,7 +787,7 @@ message CounterTemplateInfo
 
 
 
-message ReserveCounterIn
+message ReserveCounterInput
 {
     required ReservationType          reservationType=1;
     required int64                    dateOfReservation=2 [(DateTime)=true ];
@@ -778,7 +817,7 @@ message DeleteCounterIn
     reserved    		4; // 2024.04.04 Istomin: CounterDeleteOptions - Не используется в CLS	
 }
 
-message CommitReservationIn
+message CommitReservationInput
 {
     repeated int64    reservationIds=1;
     optional bool     isTransacted=2;
@@ -1053,7 +1092,7 @@ enum RequestDetailStatus
     ReservationAbsoluteValueNotPossible=16;
     ReservationNotFound=17;
     ReservationIdNotDefined=18;
-    CounterdIdNotDefined=19;
+    CounterIdNotDefined=19;
     UnsupportedUpdateType=20;
     InvalidInfoType=21;
     dateOfActionInPast=22;
@@ -1153,9 +1192,18 @@ enum RequestDetailStatus
     NotEnoughLongTimeReservations=126;
 	DomainCodeNotFound=127;
 	TemplateIdNotFound=128;
+    DomainCodeMissmatch=129;
+    NotImplementedInMvp1=130;
 }
 
-
+enum ClassAttrsExpressionOperationType
+{
+    Unknown = -1;
+    OR  = 250;
+    AND = 251;
+    NOT = 252;
+}
+  
 
 
 
@@ -1182,4 +1230,3 @@ enum CompatibleProtocolVersion
     MinorCompVersionNum=17;
 }
 
-  

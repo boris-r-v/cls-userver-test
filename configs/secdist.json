@@ -1,0 +1,15 @@
+{
+  "redis_settings": {
+    "main_db": {
+      "password": "",
+      "sentinels": [
+        {"host": "127.0.0.1", "port": 5010}
+	],
+      "shards": [
+        {"name": "mymaster1"},
+        {"name": "mymaster2"},
+        {"name": "mymaster3"}
+	    ]
+    }
+  }
+}

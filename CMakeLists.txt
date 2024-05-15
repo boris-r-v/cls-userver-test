@@ -14,10 +14,10 @@ userver_setup_environment()
 
 # Common sources
 add_library(${PROJECT_NAME}_objs OBJECT
-        src/CounterServiceComponent.cpp
-        src/CounterServiceComponent.h
         src/CounterRPCClient.cpp
         src/CounterRPCClient.h
+        src/CounterServiceComponent.cpp
+        src/CounterServiceComponent.h
         src/CounterRPCHttpHandler.cpp
         src/CounterRPCHttpHandler.h
 )

@@ -29,7 +29,7 @@ class CounterRPCHttpHandler : public userver::server::handlers::HttpHandlerBase 
   std::string HandleRequestThrow(
       const userver::server::http::HttpRequest& request,
       userver::server::request::RequestContext&) const override {
-    grpc_greeter_client_.SayHello();
+   // grpc_greeter_client_.SayHello();
     return "";
   }
 
