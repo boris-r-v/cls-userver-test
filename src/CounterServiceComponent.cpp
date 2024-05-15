@@ -63,6 +63,7 @@ void CounterServiceComponent::CreateCounter(    cls_gen::CounterRPCBase::CreateC
     LOG_INFO() << "clientRequestId<" << request_.requestinfo().clientrequestid() << ">" << "Check if cliendReqiestId <" << clReqIdFul << "> is unique <" << !ret <<  ">"; 
     if ( 1 == ret){
             LOG_WARNING() << "CreateCounter got duplicate request with clientRequestId <" << clReqId << ">\n";
+            std::cout << "CreateCounter got duplicate request with clientRequestId <" << clReqId << ">\n";
             reply_.set_result ( cls_gen::RequestStatus::RequestFailed );
             reply_.set_resultdetail ( cls_gen::RequestDetailStatus::DuplicateRequest );
             call.Finish(reply_);

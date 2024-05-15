@@ -1,19 +1,36 @@
 components_manager:
+#    coro_pool:
+#	    initial_size: 50
+#	    max_size: 100
+
+    task_processors:
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            worker_threads: 2
+            thread_name: grpc-worker
+        main-task-processor:           # For non-blocking operations
+            worker_threads: 8
+            thread_name: main-worker
+        fs-task-processor:             # For blocking filesystem operations
+            worker_threads: 2
+            thread_name: fs-worker
+    default_task_processor: main-task-processor  # Task processor in which components start.
+
     components:
         logging:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
                     file_path: '@stderr'
-                    level: info
+                    level: error
                     overflow_behavior: discard
 
-        grpc-client-factory:
-            task-processor: grpc-blocking-task-processor
-            channel-args: {}
+        server:
+            listener:
+                port: 8092
+                task_processor: main-task-processor
 
         grpc-server:
-            port: 8091 #$grpc_server_port
+            port: 8091 
             completion-queue-count: 3
 
         counter-service:
@@ -21,16 +38,12 @@ components_manager:
             service-prefix: Counter
             middlewares: [ ]
 
-        counter-rpc-client:
-            endpoint: '[::1]:8091'
-
         redis-database:
             groups:
                 - config_name: main_db  # Key to lookup in secdist configuration
                   db: main_db           # Name to refer to the cluster in components::Redis::GetClient()
 
             subscribe_groups:  # Array of redis clusters to work with in subscribe mode
-
             thread_pools:
                 redis_thread_pool_size: 8
                 sentinel_thread_pool_size: 1
@@ -42,25 +55,7 @@ components_manager:
             missing-ok: true                             # ... but if the file is missing it is still ok
             environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
 
-        server:
-            listener:
-                port: 8092
-                task_processor: main-task-processor
-
-        counter-rpc-client-http-handler:
-                    path: /hello
-                    method: POST
-                    task_processor: main-task-processor
-
         testsuite-support:
 
-    default_task_processor: main-task-processor  # Task processor in which components start.
 
-    task_processors:
-        grpc-blocking-task-processor:  # For blocking gRPC channel creation
-            worker_threads: 2
-            thread_name: grpc-worker
-        main-task-processor:           # For non-blocking operations
-            worker_threads: 8
-        fs-task-processor:             # For blocking filesystem operations
-            worker_threads: 2
+

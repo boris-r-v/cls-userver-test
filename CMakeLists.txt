@@ -14,12 +14,8 @@ userver_setup_environment()
 
 # Common sources
 add_library(${PROJECT_NAME}_objs OBJECT
-        src/CounterRPCClient.cpp
-        src/CounterRPCClient.h
         src/CounterServiceComponent.cpp
         src/CounterServiceComponent.h
-        src/CounterRPCHttpHandler.cpp
-        src/CounterRPCHttpHandler.h
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::core
         userver::redis
