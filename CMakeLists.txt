@@ -14,6 +14,7 @@ userver_setup_environment()
 
 # Common sources
 add_library(${PROJECT_NAME}_objs OBJECT
+        src/create_counter_func.cpp
         src/CounterServiceComponent.cpp
         src/CounterServiceComponent.h
 )
