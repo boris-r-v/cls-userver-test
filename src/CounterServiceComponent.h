@@ -18,13 +18,11 @@ class CounterServiceComponent final
  public:
   static constexpr std::string_view kName = "counter-service";
 
-  CounterServiceComponent(const userver::components::ComponentConfig& config,
-                          const userver::components::ComponentContext& context);
+  CounterServiceComponent(const userver::components::ComponentConfig& config, const userver::components::ComponentContext& context);
 
   static userver::yaml_config::Schema GetStaticConfigSchema();
 
-  void CreateCounter( cls_gen::CounterRPCBase::CreateCounterCall& call,
-                      cls_gen::CreateCounterRequest&& request) override;
+  void CreateCounter( cls_gen::CounterRPCBase::CreateCounterCall& call, cls_gen::CreateCounterRequest&& request) override;
 
  private:
   const std::string prefix_;
