@@ -6,6 +6,7 @@
 #define CLS_USERVER_COUNTERSERVICECOMPONENT_H
 
 #include <CLS_service.usrv.pb.hpp>
+#include "Cache.h"
 
 #include <userver/components/component.hpp>
 
@@ -25,6 +26,9 @@ class CounterServiceComponent final: public cls_gen::CounterRPCBase::Component {
   private:
     userver::storages::redis::ClientPtr redis_client_;
     userver::storages::redis::CommandControl redis_cc_;
+    
+    cls_core::CounterTempateCache tcache_;
+
 };
 
 #endif  // CLS_USERVER_COUNTERSERVICECOMPONENT_H

@@ -10,6 +10,18 @@
         {"name": "mymaster2"},
         {"name": "mymaster3"}
 	    ]
+    },
+    "srv_db": {
+      "password": "",
+      "sentinels": [
+        {"host": "127.0.0.1", "port": 8010}
+	],
+      "shards": [
+        {"name": "srv-master"}
+	]
     }
+
+
+
   }
 }

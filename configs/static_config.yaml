@@ -16,12 +16,18 @@ components_manager:
     default_task_processor: main-task-processor  # Task processor in which components start.
 
     components:
+        counter-template-cache:
+            update-interval: 5s
+            update-jitter: 1s
+            #full-update-interval: 10s
+            update-types: only-full      # Can be only-full, only-incremental, full-and-incremental
+
         logging:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
                     file_path: '@stderr'
-                    level: error
+                    level: info
                     overflow_behavior: discard
 
         server:
@@ -42,10 +48,14 @@ components_manager:
                 - config_name: main_db  # Key to lookup in secdist configuration
                   db: main_db           # Name to refer to the cluster in components::Redis::GetClient()
 
+                - config_name: srv_db  # Key to lookup in secdist configuration
+                  db: srv_db           # Name to refer to the cluster in components::Redis::GetClient()
+
             subscribe_groups:  # Array of redis clusters to work with in subscribe mode
             thread_pools:
                 redis_thread_pool_size: 8
                 sentinel_thread_pool_size: 1
+
 
         secdist:                                         # Component that stores configuration of hosts and passwords
             provider: default-secdist-provider

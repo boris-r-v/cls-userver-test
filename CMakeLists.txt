@@ -13,11 +13,9 @@ userver_setup_environment()
 
 
 # Common sources
-add_library(${PROJECT_NAME}_objs OBJECT
-        src/create_counter_func.cpp
-        src/CounterServiceComponent.cpp
-        src/CounterServiceComponent.h
-)
+file (GLOB sources "src/*")
+add_library(${PROJECT_NAME}_objs OBJECT ${sources})
+
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::core
         userver::redis
         userver::grpc
@@ -28,7 +26,7 @@ userver_add_grpc_library(${PROJECT_NAME}_proto PROTOS CLS.proto)
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC ${PROJECT_NAME}_proto)
 
 # The Service
-add_executable(${PROJECT_NAME} src/main.cpp)
+add_executable(${PROJECT_NAME} src_main/main.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_objs)
 
 
