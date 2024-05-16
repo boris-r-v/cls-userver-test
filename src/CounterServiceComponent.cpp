@@ -13,14 +13,15 @@
 
 cls_gen::CreateCounterResponse create_counter(  cls_gen::CreateCounterRequest&& request_,   
                                                 userver::storages::redis::ClientPtr& redis_client_,
-                                                userver::storages::redis::CommandControl redis_cc_ );
+                                                userver::storages::redis::CommandControl redis_cc_,
+                                                cls_core::CounterTempateCache& cache_ );
 
 CounterServiceComponent::CounterServiceComponent( userver::components::ComponentConfig const& config, userver::components::ComponentContext const& context)
     :cls_gen::CounterRPCBase::Component::Component(config, context)
     ,redis_client_{ context.FindComponent<userver::components::Redis>("redis-database").GetClient("main_db") }
     ,redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4}
-    //,tcache_ {context.FindComponent<cls_core::CounterTempateCache>("counter-template-cache").Get()}
-    ,tcache_ {context.FindComponent<cls_core::CounterTempateCache>()}
+    ,tcache_ { context.FindComponent<cls_core::CounterTempateCache>("counter-template-cache") }
+
 
 {}
 
@@ -29,9 +30,14 @@ void CounterServiceComponent::CreateCounter(    cls_gen::CounterRPCBase::CreateC
                                                 cls_gen::CreateCounterRequest&& request_ ) 
 {
     
-    const auto tcache = tcache_.Get();
-    const auto& template_map = tcache->map_;
     
-    call.Finish( create_counter( std::move(request_), redis_client_, redis_cc_ ) );
+    call.Finish( create_counter( std::move(request_), redis_client_, redis_cc_, tcache_ ) );
 }
 
+
+
+/*
+    ,tcache_ {context.FindComponent<cls_core::CounterTempateCache>()}
+    const auto tcache = tcache_.Get();
+    const auto& template_map = tcache->map_;
+*/

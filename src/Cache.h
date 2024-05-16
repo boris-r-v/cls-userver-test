@@ -1,3 +1,5 @@
+#pragma once
+
 #include <unordered_map>
 #include <CLS_service.usrv.pb.hpp>
 
@@ -9,8 +11,10 @@
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/secdist/component.hpp>
 
-namespace cls_core{
+#include "CounterTemplate.h"
 
+namespace cls_core{
+/*
     struct CounterTemplate{
         CounterTemplate() = default;
         CounterTemplate( std::unordered_map<std::string, std::string>&& v): data_(v) {}
@@ -18,11 +22,22 @@ namespace cls_core{
         std::string operator[](std::string const& key){return data_[key];}
 
         std::unordered_map<std::string, std::string>& map(){ return data_;}
+
+        static std::string make_key(int a, int b, int c){
+            std::string ret("counterTemplate:");
+            ret.append( std::to_string(a));
+            ret.append( ":" );
+            ret.append( std::to_string(b));
+            ret.append( ":" );
+            ret.append( std::to_string(c));
+            return ret;
+        }
+
         private:
             std::unordered_map<std::string, std::string> data_;
 
     };
-
+*/
 
     class CounterTempateCache: public userver::components::CachingComponentBase<CounterTemplate>{
         public:
@@ -30,7 +45,14 @@ namespace cls_core{
             CounterTempateCache(userver::components::ComponentConfig const& config, userver::components::ComponentContext const& context);
             ~CounterTempateCache();
 
+            CounterTemplate operator[](std::string const& key){return map_[key];}
 
+            bool find_template(std::string const& key, CounterTemplate& cntr ){
+                auto fnd = map_.find(key);
+                if (fnd == map_.end() ) return false;
+                cntr = fnd->second;
+                return true;
+            }
 
         private:
             void Update(    userver::cache::UpdateType type,

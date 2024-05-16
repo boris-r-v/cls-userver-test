@@ -19,17 +19,19 @@ void CounterTempateCache::Update(   userver::cache::UpdateType type,
                                     [[maybe_unused]] std::chrono::system_clock::time_point const& now,
                                     userver::cache::UpdateStatisticsScope& stats_scope ) {
 
-    map_t map_;
+    map_t tmap;
     auto keys = redis_client_->Keys( "counterTemplate:*", 0, redis_cc_).Get();
     for (auto key: keys ){
         std::cout << "KEY: " << key  << std::endl;
-        //auto redis_template = ;
+        auto redis_template = redis_client_->Hgetall(key, redis_cc_ ).Get();
 
-        map_.emplace(std::make_pair( key, std::move( redis_client_->Hgetall(key, redis_cc_ ).Get() ) ) );
-
+        CounterTemplate tmp;
+        tmp.FromRd( redis_template );
+        tmap.insert(std::make_pair( key, tmp ) );
     }
 
     OnCacheModified();
-    stats_scope.Finish(map_.size());
+    stats_scope.Finish(tmap.size());
+    tmap.swap(map_);    //FIX ME need something thread safe
     //Emplace ( map_ );
 }

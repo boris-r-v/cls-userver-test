@@ -1,7 +1,6 @@
 //
 // Created by vadim on 18.04.24.
 //
-
 #ifndef CLS_USERVER_COUNTERSERVICECOMPONENT_H
 #define CLS_USERVER_COUNTERSERVICECOMPONENT_H
 
@@ -27,7 +26,7 @@ class CounterServiceComponent final: public cls_gen::CounterRPCBase::Component {
     userver::storages::redis::ClientPtr redis_client_;
     userver::storages::redis::CommandControl redis_cc_;
     
-    cls_core::CounterTempateCache tcache_;
+    cls_core::CounterTempateCache& tcache_;
 
 };
 
