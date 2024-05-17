@@ -2,7 +2,7 @@
 #define __COUNTER_TEMPLATE_H__
 
 #include <cstdint>
-//#include <format>
+#include <format>
 #include <functional>
 #include <string>
 
@@ -46,16 +46,7 @@ public:
 	//std::string templateFactor;// Factors on template for reinit : {extCode, value, type, position, expirationDate, activationCodeId} *������� ��� ������ ����� ��������� ������ - ��������� �� �������� "������ ���������� �������", � �������� ������� �� ������� ��������(���.������) ������� �����������.
 	
 	static std::string key(tmplid_t id, profileid_t profileId, uint32_t templateVersion) {
-		return "";//std::format("counterTemplate:{{{}}}:{}:{}", id, profileId, templateVersion);
-	}
-	static std::string crkey(int a, int b, int c){
-		std::string ret("counterTemplate:");
-		ret.append( std::to_string(a));
-		ret.append( ":" );
-		ret.append( std::to_string(b));
-		ret.append( ":" );
-		ret.append( std::to_string(c));
-		return ret;
+		return std::format("counterTemplate:{{{}}}:{}:{}", id, profileId, templateVersion);
 	}
 	ctid_t key() {
 		return std::make_tuple(templateId, profileId, templateVersion);

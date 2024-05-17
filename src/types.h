@@ -2,19 +2,24 @@
 #define __TYPES_H__
 
 #include <cstdint>
+#include <format>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <CLS.pb.h>
 #include <bitset>
 #include <chrono>
 #include <sstream>
+#include <fmt/core.h>
 
 // Serialize ordinal properties
 #define TORD(m, f) m[#f] = to_rdstr(f)
+#define VTORD(m, f) m.push_back( std::make_pair( #f, to_rdstr(f) ) );
 
 // To serialize vector-like properties
 #define TORDV(m, f) m[#f] = to_rdstrv(f)
+#define VTORDV(m, f) m.push_back( std::make_pair( #f, to_rdstrv(f) ) );
 
 template <typename T>
 std::string to_rdstrv(const std::vector<T>& v) {
@@ -35,6 +40,7 @@ void rdcast(const std::string_view& s, T& t){
 };
 
 
+typedef std::vector<std::pair<std::string, std::string>> hvector;// std::flat_map?
 typedef std::unordered_map<std::string, std::string> hmap;// std::flat_map?
 typedef std::unordered_set<std::string> hset;// std::flat_map?
 
@@ -283,6 +289,8 @@ std::string to_rdstr(const clsdate& t);
 
 template <>
 inline void rdcast(const std::string_view& s, clsdate& t) {
+	tm tm = {};
+	std::stringstream ss ( s.data() );
 	switch (s.size() ){
 		case 1: [[fallthrough]];
 		case 2: [[fallthrough]];
@@ -300,10 +308,19 @@ inline void rdcast(const std::string_view& s, clsdate& t) {
 			t = tt;
 			return;
 		}
+		case 14:
+			ss >> std::get_time(&tm, "%Y%m%d%H%M%S");
+			break;
+		case 19:
+			ss >> std::get_time(&tm, "%Y-%m-%d  %H:%M:%S");
+			break;
 		default:
-			throw std::invalid_argument( "clsdate::rdcast wrong date" );
+			throw std::invalid_argument(fmt::format( "clsdate::rdcast wrong date len:{} and value:<{}>", s.size(), s ) );
 	}
-
+	std::chrono::system_clock::time_point tp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+	auto ts = std::chrono::duration_cast<std::chrono::seconds>( tp.time_since_epoch() );
+	auto fin = ts + std::chrono::current_zone()->get_info(tp).offset; 
+	t = fin.count();
 }
 
 inline bool operator <(const clsdate& d1, const clsdate& d2) {

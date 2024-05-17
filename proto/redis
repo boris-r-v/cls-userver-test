@@ -8,3 +8,7 @@ HSET counterTemplate:{101}:0:0 templateId 101 profileId 0 dateFrom 1577826000 da
 HSET counterTemplate:{2037}:0:0 templateId 2037 profileId 0 dateFrom 1577826000 dateTo 2145916800 templateVersion 0 applied 1 moveLimitRatio 1000000 moveRatio 1000000 baseInitialValue 1 scale 6 periodType 15 extCode "testCounterTemplate2037" extType 2 metricUnitCode "BYTE"
 HSET counterTemplate:{2038}:0:0 templateId 2038 profileId 0 dateFrom 1577826000 dateTo 2145916800 templateVersion 0 applied 1 moveLimitRatio 1000000 moveRatio 1000000 baseInitialValue 64424509440 scale 6 periodType 15 extCode "testCounterTemplate2038" extType 2 metricUnitCode "BYTE"
 HSET counterTemplate:{200}:0:0 templateId 200 profileId 0 dateFrom 1577826000 dateTo 2145916800 templateVersion 0 applied 1 moveLimitRatio 1000000 moveRatio 100000 baseInitialValue 107374182400 scale 0 periodType 15 extCode "testCounterTemplate200" extType 2 metricUnitCode "BYTE"
+
+
+hset timeZoneDict:3  "id" "3" "timeZone" "0" "timeShift" "480" "dateFrom" "1577836800" "dateTo" "2345916800" "description" "UTC TimeZone"
+hset timeZoneDict:4  "id" "4" "timeZone" "0" "timeShift" "120" "dateFrom" "1577836800" "dateTo" "2345916800" "description" "UTC TimeZone"

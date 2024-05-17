@@ -211,7 +211,8 @@ class Client {
   virtual RequestIncr Incr(std::string key,
                            const CommandControl& command_control) = 0;
 
-  [[deprecated("use Scan")]] virtual RequestKeys Keys(
+  //[[deprecated("use Scan")]] 
+  virtual RequestKeys Keys(
       std::string keys_pattern, size_t shard,
       const CommandControl& command_control) = 0;
 

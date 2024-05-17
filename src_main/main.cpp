@@ -23,6 +23,8 @@ int main(int argc, char* argv[]) {
           .Append<userver::components::Redis>("redis-database")
           .Append<CounterServiceComponent>()      
           .Append<cls_core::CounterTempateCache>()      
+          .Append<cls_core::TimeZoneCache>()                
           ;
   return userver::utils::DaemonMain(argc, argv, component_list);
 }
+

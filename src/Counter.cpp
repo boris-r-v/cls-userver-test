@@ -94,3 +94,50 @@ void Counter::ToRd(hmap& m) const {
 	TORDV(m, LTR);
 }
 
+void Counter::ToRd(hvector& m) const {
+	//m.clear();
+	VTORD(m, id);
+	VTORD(m, dateFrom);
+	VTORD(m, dateTo);
+	VTORD(m, value);
+	VTORD(m, initialValue);
+	VTORD(m, templateId);
+	VTORD(m, templateVersion);
+
+	VTORD(m, totalReservedAmount);
+	VTORD(m, modifyTS);
+	VTORD(m, metaVersion);
+	VTORDV(m, classificationAttrs);
+	VTORD(m, domainCode);
+	VTORD(m, isPeriodic);
+	VTORD(m, profileId);
+	VTORD(m, activationCode);
+	VTORD(m, passedPeriodCounter);
+	VTORD(m, startOfLifeDate);
+	VTORD(m, endOfLifeDate);
+	VTORD(m, nextDateFrom);
+	VTORD(m, timeZone);
+	VTORD(m, billingPeriod);
+
+	VTORD(m, flags);
+	VTORDV(m, occurOnReserve);
+	VTORDV(m, occurOnCommit);
+	VTORDV(m, occurOnEOS);
+	VTORDV(m, occurOnGet);
+	VTORDV(m, occurOnLifeCycle);
+	VTORD(m, initialValue);
+	VTORD(m, movedValue);
+	VTORD(m, IRPAamount);
+
+	VTORDV(m, valueHistory);
+
+	//VTORD(m, numExtAttrs);
+	VTORDV(m, extAttrs);
+
+	//VTORD(m, numAutoRefills);
+	VTORDV(m, autoRefills);
+
+	//VTORD(m, numLTR);
+	VTORDV(m, LTR);
+}
+

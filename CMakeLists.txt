@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(cls_userver CXX)
+set (CMAKE_CXX_STANDARD 20)
 
 # Compatibility mode: some systems don't support these features
 set(USERVER_FEATURE_CRYPTOPP_BLAKE2 OFF CACHE BOOL "" FORCE)

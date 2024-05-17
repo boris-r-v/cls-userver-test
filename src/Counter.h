@@ -3,6 +3,7 @@
 
 #include <CLS.pb.h>
 #include "types.h"
+const int64_t END_OF_TIMES_DATE(2145916800);
 
 /*template <>
 inline void to_rds(std::stringstream& ss, const uint32_t& t) {
@@ -208,12 +209,13 @@ public:
 	std::vector<AutoRefill> autoRefills; // autoRefill1{ dateFrom, dateTo, value, priority1 }
 	//uint32_t numLTR;//	number of tmpCounters with type "LTR"
 	std::vector<LTR_t> LTR; // LTR1{ dateFrom, dateTo, value, priority1, context }
-	std::string key() const { std::string ret("counter:"); return ret.append(std::to_string(id)); }
+	std::string key() const { return std::format("counter:{{{}}}", id); }
 
 
-	static std::string key(cntid_t id) { std::string ret("counter:"); return ret.append(std::to_string(id)); }
+	static std::string key(cntid_t id) { return std::format("counter:{{{}}}", id); }
 	void FromRd(const hmap& m);
 	void ToRd(hmap& map) const;
+	void ToRd(hvector& map) const;
 };
 
 #endif // !__COUNTER_H__

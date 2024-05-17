@@ -1,4 +1,5 @@
 
+#include <CLS.pb.h>
 #include "CounterServiceComponent.h"
 #include "Cache.h"
 #include "Counter.h"
@@ -19,11 +20,8 @@ bool is_invalid_request(Req const& request, Template const& tmp, ResInfo& result
 template <class Req, class Counter, class ResInfo>
 bool is_invalid_counter(Req const& request, Counter const& tmp, ResInfo& resultInfo );
 
-cls_gen::CreateCounterResponse create_counter(   cls_gen::CreateCounterRequest&& request_
-                                                ,userver::storages::redis::ClientPtr& redis_client_
-                                                ,userver::storages::redis::CommandControl redis_cc_
-                                                ,cls_core::CounterTempateCache& cache_ )
-{
+cls_gen::CreateCounterResponse 
+CounterServiceComponent::CreateCounterImpl( cls_gen::CreateCounterRequest&& request_ ){
 
     cls_gen::CreateCounterResponse reply_;
 
@@ -88,69 +86,74 @@ cls_gen::CreateCounterResponse create_counter(   cls_gen::CreateCounterRequest&&
             LOG_WARNING() << "CreateCounter wrong arguments, count less or equal than zero";
             return reply_;
     }
-        /*Определяем какой шаблон использовать*/              
-        
-        auto tkey = CounterTemplate::crkey(request_.input().templateid(), request_.input().attrs().profileid(), 0);
-        CounterTemplate ctemplate;
-        if ( !cache_.find_template( tkey, ctemplate ) ) {
-                LOG_WARNING() << "clientRequestId<" << request_.requestinfo().clientrequestid() << ">" << " Template " << CounterTemplate::key(request_.input().templateid(), request_.input().attrs().profileid(), 0) << " not found, exiting";
-                reply_.set_result ( cls_gen::RequestStatus::RequestFailed );
-                reply_.set_resultdetail ( cls_gen::RequestDetailStatus::TemplateIdNotFound );
-                return reply_;
-        }    
+    /*Определяем какой шаблон использовать*/              
+    
+    auto tkey = CounterTemplate::key(request_.input().templateid(), request_.input().attrs().profileid(), 0);
+    CounterTemplate ctemplate;
+    if ( !tcache_.find_template( tkey, ctemplate ) ) {
+            LOG_WARNING() << "clientRequestId<" << request_.requestinfo().clientrequestid() << ">" << " Template " << CounterTemplate::key(request_.input().templateid(), request_.input().attrs().profileid(), 0) << " not found, exiting";
+            reply_.set_result ( cls_gen::RequestStatus::RequestFailed );
+            reply_.set_resultdetail ( cls_gen::RequestDetailStatus::TemplateIdNotFound );
+            return reply_;
+    }    
 
+    size_t idx=0, good_req=0;
+    for ( idx = 0; idx < request_.input().count(); ++idx ){
+        auto resultInfo = reply_.add_resultinfo();
+        if( is_invalid_request (request_, ctemplate, resultInfo) ) continue;
 
-        std::string key = "counter_id_seq"; //Eval counter ID
-        /*Populate counter data*/
-        size_t idx=0, good_req=0;
-        for ( idx = 0; idx < request_.input().count(); ++idx ){
-                auto resultInfo = reply_.add_resultinfo();
-                if( is_invalid_request (request_, ctemplate, resultInfo) ) continue;
+        auto id = redis_client_ -> Incr( "counter_id_seq", redis_cc_).Get(); //FIX ME - first popuate counter fielada validate it and after it increment
+        Counter counter( id );
+        LOG_INFO() << "clientRequestId<" << request_.requestinfo().clientrequestid() << ">" <<"new counter have redis_key: <" << counter.key() << ">";
+        LOG_INFO() << "clientRequestId<" << request_.requestinfo().clientrequestid() << ">" <<"new counter have id: <" << id << ">";
 
-                auto id = co_await redis_ -> command<long long >("incr", key);
-                Counter counter( id );
-                LOG_INFO() << "clientRequestId<" << request_.requestinfo().clientrequestid() << ">" <<"new counter have redis_key: <" << counter.key() << ">";
-                LOG_INFO() << "clientRequestId<" << request_.requestinfo().clientrequestid() << ">" <<"new counter have id: <" << id << ">";
+        populate_counter(request_, counter, ctemplate );
+        if( is_invalid_counter(request_, counter, resultInfo ) ) continue;
 
-                populate_counter(request_, counter, ctemplate );
-                if( is_invalid_counter(request_, counter, resultInfo ) ) continue;
-
-                hmap mm;
-                counter.ToRd( mm );
-                for (auto xmm: mm){
-                LOG_TRACE << "CounterData " << xmm.first << " : " << xmm.second;
-                }
-                auto val = co_await redis_ -> hset(counter.key(), mm.begin(), mm.end() );
-                LOG_TRACE << "HSET return " << val;
-                /*Update classificator attr if it set*/
-                for (int i =0; i<request_.input().attrs().classattrs_size(); ++i ){
-                auto one = request_.input().attrs().classattrs( i );
-                std::string _account("counterClassifier:{");
-                _account += one.type();
-                _account += ":";
-                _account += one.value();
-                _account += "}";
-                co_await redis_ -> sadd ( _account, std::to_string( id ) );
-                LOG_INFO << "Update counterClassifier: <" << _account << ">  add id: <" << id << ">";                
-                }
-
-
-                resultInfo->mutable_complinfo()->set_id( id );
-                resultInfo->mutable_complinfo()->set_result( cls_gen::RequestStatus::RequestSuccess );
-                resultInfo->mutable_complinfo()->set_resultdetail( cls_gen::RequestDetailStatus::Undefined );
-                ++good_req;
-
+        TimeZone tz;
+        if ( !zcache_.find_zone_by_shift( counter.timeZone, tz )) {        
+            resultInfo->mutable_complinfo()->set_id( -1 );
+            resultInfo->mutable_complinfo()->set_result( cls_gen::RequestStatus::RequestFailed );
+            resultInfo->mutable_complinfo()->set_resultdetail( cls_gen::RequestDetailStatus::InvalidTimeZone );        
+            LOG_ERROR() << "clientRequestId<" << request_.requestinfo().clientrequestid() << "> RequestFailed InvalidTimeZone can`t find by timeShift: <" << counter.timeZone <<">";
+            continue;
         }
-        if (0 != good_req and good_req  == idx ) reply_.set_result ( cls_gen::RequestStatus::RequestSuccess );
-        else if (0 != idx and 0 == good_req ) reply_.set_result ( cls_gen::RequestStatus::RequestFailed );
-        else reply_.set_result ( cls_gen::RequestStatus::RequestSuccessPartial );
-        reply_.set_resultdetail ( cls_gen::RequestDetailStatus::Undefined );
-        status_ = Status::FINISH;
-        responder_.Finish(reply_, grpc::Status::OK, this);         
-        LOG_INFO << "clientRequestId<" << request_.requestinfo().clientrequestid() << ">" << "Handle CreateCounter Done";
+        else{
+            const_cast<Counter&>(counter).timeZone = tz.id;
+        }
 
-        
 
+        hvector mm;
+        counter.ToRd( mm );
+        for (auto xmm: mm){
+            LOG_TRACE() << "CounterData " << xmm.first << " : " << xmm.second;
+        }
+        redis_client_ -> Hmset(counter.key(), mm,  redis_cc_ ).Get();
+        //LOG_TRACE() << "HSET return " << val;
+        //Update classificator attr if it set
+        for (int i =0; i<request_.input().attrs().classattrs_size(); ++i ){
+            auto one = request_.input().attrs().classattrs( i );
+            std::string _account("counterClassifier:{");
+            _account += one.type();
+            _account += ":";
+            _account += one.value();
+            _account += "}";
+            redis_client_ -> Sadd ( _account, std::to_string( id ), redis_cc_ ).Get();
+            LOG_INFO() << "Update counterClassifier: <" << _account << ">  add id: <" << id << ">, return: ";                
+        }
+
+
+        resultInfo->mutable_complinfo()->set_id( id );
+        resultInfo->mutable_complinfo()->set_result( cls_gen::RequestStatus::RequestSuccess );
+        resultInfo->mutable_complinfo()->set_resultdetail( cls_gen::RequestDetailStatus::Undefined );
+        ++good_req;
+
+    }
+    if (0 != good_req and good_req  == idx ) reply_.set_result ( cls_gen::RequestStatus::RequestSuccess );
+    else if (0 != idx and 0 == good_req ) reply_.set_result ( cls_gen::RequestStatus::RequestFailed );
+    else reply_.set_result ( cls_gen::RequestStatus::RequestSuccessPartial );
+    reply_.set_resultdetail ( cls_gen::RequestDetailStatus::Undefined );
+    LOG_INFO() << "clientRequestId<" << request_.requestinfo().clientrequestid() << ">" << "Handle CreateCounter Done";
     return reply_;
 }
 
@@ -278,7 +281,7 @@ bool is_invalid_request(Req const& request, Template const& tmp, ResInfo& result
         resultInfo->mutable_complinfo()->set_id( -1 );
         resultInfo->mutable_complinfo()->set_result( cls_gen::RequestStatus::RequestFailed );
         resultInfo->mutable_complinfo()->set_resultdetail( cls_gen::RequestDetailStatus::CounterExpired );
-        LOG_ERROR() << "clientRequestId<" << request.requestinfo().clientrequestid() << std::format( "> Classification CounterExpired attr.activationdate() > template.dateTo {} > {}", attr.activationdate(), tmp.dateTo.ct() );
+        LOG_ERROR() << "clientRequestId<" << request.requestinfo().clientrequestid() << fmt::format( "> Classification CounterExpired attr.activationdate() > template.dateTo {} > {}", attr.activationdate(), tmp.dateTo.ct() );
         return true;       
     }
 
@@ -292,7 +295,7 @@ bool is_invalid_counter(Req const& request, Counter const& counter, ResInfo& res
         resultInfo->mutable_complinfo()->set_id( -1 );
         resultInfo->mutable_complinfo()->set_result( cls_gen::RequestStatus::RequestFailed );
         resultInfo->mutable_complinfo()->set_resultdetail( cls_gen::RequestDetailStatus::CounterExpired );
-        LOG_ERROR() << "clientRequestId<" << request.requestinfo().clientrequestid() << std::format( "> Final calculated/assigned dateTo {} is in the past, less than current time {} ", counter.dateTo.ct(), time(0) );
+        LOG_ERROR() << "clientRequestId<" << request.requestinfo().clientrequestid() << fmt::format( "> Final calculated/assigned dateTo {} is in the past, less than current time {} ", counter.dateTo.ct(), time(0) );
         return true;
     }
 
@@ -300,21 +303,8 @@ bool is_invalid_counter(Req const& request, Counter const& counter, ResInfo& res
         resultInfo->mutable_complinfo()->set_id( -1 );
         resultInfo->mutable_complinfo()->set_result( cls_gen::RequestStatus::RequestFailed );
         resultInfo->mutable_complinfo()->set_resultdetail( cls_gen::RequestDetailStatus::CounterExpired );
-        LOG_ERROR() << "clientRequestId<" << request.requestinfo().clientrequestid() << std::format( "> Final calculated/assigned dateTo {} is less than attrs.activationDate {}", counter.dateTo.ct(), attr.activationdate() );
+        LOG_ERROR() << "clientRequestId<" << request.requestinfo().clientrequestid() << fmt::format( "> Final calculated/assigned dateTo {} is less than attrs.activationDate {}", counter.dateTo.ct(), attr.activationdate() );
         return true;        
-    }
-
-    /*Find TimeZoneId by TimeShift which stored in counter.timeZone defect    https://jira.mts.ru/browse/TPSUC-4526*/
-    TimeZone tz;
-    if (!Caches::timeZones().getByTimeShift(counter.timeZone, tz)){
-        resultInfo->mutable_complinfo()->set_id( -1 );
-        resultInfo->mutable_complinfo()->set_result( cls_gen::RequestStatus::RequestFailed );
-        resultInfo->mutable_complinfo()->set_resultdetail( cls_gen::RequestDetailStatus::InvalidTimeZone );        
-        LOG_ERROR() << "clientRequestId<" << request.requestinfo().clientrequestid() << "> RequestFailed InvalidTimeZone can`t find by timeShift: <" << counter.timeZone <<">";
-        return true;
-    }
-    else{
-        const_cast<Counter&>(counter).timeZone = tz.id;
     }
     return false;
 }

@@ -12,33 +12,9 @@
 #include <userver/storages/secdist/component.hpp>
 
 #include "CounterTemplate.h"
+#include "TimeZone.h"
 
 namespace cls_core{
-/*
-    struct CounterTemplate{
-        CounterTemplate() = default;
-        CounterTemplate( std::unordered_map<std::string, std::string>&& v): data_(v) {}
-        
-        std::string operator[](std::string const& key){return data_[key];}
-
-        std::unordered_map<std::string, std::string>& map(){ return data_;}
-
-        static std::string make_key(int a, int b, int c){
-            std::string ret("counterTemplate:");
-            ret.append( std::to_string(a));
-            ret.append( ":" );
-            ret.append( std::to_string(b));
-            ret.append( ":" );
-            ret.append( std::to_string(c));
-            return ret;
-        }
-
-        private:
-            std::unordered_map<std::string, std::string> data_;
-
-    };
-*/
-
     class CounterTempateCache: public userver::components::CachingComponentBase<CounterTemplate>{
         public:
             constexpr static const std::string_view kName = "counter-template-cache";
@@ -64,6 +40,42 @@ namespace cls_core{
             userver::storages::redis::CommandControl redis_cc_;   
 
             typedef std::unordered_map<std::string, CounterTemplate> map_t;
+            map_t map_;
+
+    };
+ 
+ class TimeZoneCache: public userver::components::CachingComponentBase<TimeZone>{
+        public:
+            constexpr static const std::string_view kName = "time-zone-cache";
+            TimeZoneCache(userver::components::ComponentConfig const& config, userver::components::ComponentContext const& context);
+            ~TimeZoneCache();
+
+            bool find_zone(std::string const& key, TimeZone& cntr ){
+                auto fnd = map_.find(key);
+                if (fnd == map_.end() ) return false;
+                cntr = fnd->second;
+                return true;
+            }
+            bool find_zone_by_shift( int32_t timeShift, TimeZone& cntr ){
+                for ( auto f : map_ ){
+                    if ( f.second.timeShift == timeShift ){
+                        cntr = f.second;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+        private:
+            void Update(    userver::cache::UpdateType type,
+                            std::chrono::system_clock::time_point const& last_update,
+                            std::chrono::system_clock::time_point const& now,
+                            userver::cache::UpdateStatisticsScope& stats_scope ) override;
+
+            userver::storages::redis::ClientPtr redis_client_;
+            userver::storages::redis::CommandControl redis_cc_;   
+
+            typedef std::unordered_map<std::string, TimeZone> map_t;
             map_t map_;
 
     };

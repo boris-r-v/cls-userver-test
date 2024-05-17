@@ -17,10 +17,17 @@ components_manager:
 
     components:
         counter-template-cache:
-            update-interval: 5s
+            update-interval: 5000s
             update-jitter: 1s
             #full-update-interval: 10s
             update-types: only-full      # Can be only-full, only-incremental, full-and-incremental
+
+        time-zone-cache:
+            update-interval: 5000s
+            update-jitter: 1s
+            #full-update-interval: 10s
+            update-types: only-full      # Can be only-full, only-incremental, full-and-incremental
+
 
         logging:
             fs-task-processor: fs-task-processor
